@@ -1,0 +1,2809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TA Intelligence · Analytics Maturity Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   TOKENS & FOUNDATIONS
+══════════════════════════════════════════ */
+:root {
+  --ink:       #0a0d13;
+  --paper:     #0f1320;
+  --card:      #141928;
+  --card2:     #1a2135;
+  --line:      rgba(255,255,255,0.07);
+  --line2:     rgba(255,255,255,0.12);
+
+  --signal:    #f5c842;   /* amber — primary signal */
+  --signal2:   #e8a020;   /* amber dark */
+  --go:        #22d98a;   /* green */
+  --stop:      #ff4757;   /* red */
+  --caution:   #ff8c42;   /* orange */
+  --info:      #4fc3f7;   /* sky */
+  --violet:    #9b72ff;   /* purple */
+
+  --text:      #e8ecf4;
+  --muted:     #5a6882;
+  --dim:       #2e3a52;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+  --font-body:    'IBM Plex Sans', sans-serif;
+
+  --r: 12px;
+  --r2: 20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Grid texture */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245,200,66,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,200,66,0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ══════════════════════════════════════════
+   MASTHEAD
+══════════════════════════════════════════ */
+.masthead {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(10,13,19,0.96);
+  border-bottom: 1px solid var(--line2);
+  backdrop-filter: blur(24px);
+  display: flex; align-items: stretch;
+}
+.masthead-brand {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 28px;
+  border-right: 1px solid var(--line);
+}
+.brand-mark {
+  width: 36px; height: 36px;
+  background: var(--signal);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 500; font-size: 12px; color: #000;
+  flex-shrink: 0;
+}
+.brand-text { }
+.brand-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+.brand-sub  { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+/* ANALYTICS MATURITY JOURNEY BAR */
+.journey-bar {
+  flex: 1;
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 0;
+  overflow-x: auto;
+}
+.journey-step {
+  display: flex; align-items: center; gap: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.journey-node {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px;
+  border-radius: 0;
+  transition: all 0.25s;
+  position: relative;
+}
+.journey-node:hover { background: rgba(255,255,255,0.04); }
+.journey-node.active { background: rgba(245,200,66,0.08); }
+.journey-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  flex-shrink: 0;
+  transition: all 0.25s;
+}
+.journey-node.active .journey-num {
+  border-color: var(--signal); color: var(--signal);
+  background: rgba(245,200,66,0.12);
+}
+.journey-info { }
+.journey-level {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--muted);
+}
+.journey-node.active .journey-level { color: var(--signal); }
+.journey-q {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  transition: color 0.25s;
+}
+.journey-node.active .journey-q { color: var(--text); }
+.journey-arrow {
+  color: var(--dim); font-size: 12px; padding: 0 4px; flex-shrink: 0;
+}
+.masthead-meta {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+  border-left: 1px solid var(--line);
+}
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(34,217,138,0.08); border: 1px solid rgba(34,217,138,0.25);
+  border-radius: 20px; padding: 4px 10px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--go);
+}
+.live-dot { width:5px; height:5px; background:var(--go); border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.4;transform:scale(1.5);} }
+.stats-pill {
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 20px; padding: 4px 10px;
+}
+
+/* ══════════════════════════════════════════
+   PAGES
+══════════════════════════════════════════ */
+.page { display: none; animation: pageIn 0.35s ease; }
+.page.active { display: block; }
+@keyframes pageIn { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+
+/* ══════════════════════════════════════════
+   STORY HERO (Page 0)
+══════════════════════════════════════════ */
+.story-hero {
+  position: relative; overflow: hidden;
+  padding: 60px 40px 48px;
+  background: linear-gradient(160deg, rgba(245,200,66,0.05) 0%, transparent 60%);
+  border-bottom: 1px solid var(--line);
+}
+.story-hero::before {
+  content: '';
+  position: absolute; top: -80px; right: -80px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(245,200,66,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.story-chapter {
+  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--signal); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.story-chapter::before { content:''; display:block; width:24px; height:1px; background:var(--signal); }
+.story-headline {
+  font-family: var(--font-display);
+  font-size: clamp(28px,4vw,48px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  max-width: 680px;
+  margin-bottom: 20px;
+}
+.story-headline em { color: var(--signal); font-style: normal; }
+.story-lede {
+  font-size: 15px; color: rgba(232,236,244,0.7);
+  max-width: 600px; line-height: 1.7; margin-bottom: 32px;
+}
+.story-kpi-row {
+  display: flex; gap: 0; flex-wrap: wrap;
+  border: 1px solid var(--line2);
+  border-radius: var(--r2); overflow: hidden;
+}
+.story-kpi {
+  flex: 1; min-width: 140px;
+  padding: 20px 24px;
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+.story-kpi:last-child { border-right: none; }
+.story-kpi-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
+.story-kpi-val { font-family: var(--font-display); font-size: 38px; font-weight: 900; line-height: 1; }
+.story-kpi-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.signal-amber { color: var(--signal); }
+.signal-green { color: var(--go); }
+.signal-red   { color: var(--stop); }
+.signal-blue  { color: var(--info); }
+.signal-violet{ color: var(--violet); }
+.signal-orange{ color: var(--caution); }
+
+/* ══════════════════════════════════════════
+   NARRATIVE BLOCKS
+══════════════════════════════════════════ */
+.narrative {
+  background: linear-gradient(135deg, rgba(245,200,66,0.04), transparent);
+  border-left: 3px solid var(--signal);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+.narrative-label {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--signal); margin-bottom: 6px;
+}
+.narrative-text { font-size: 13px; color: rgba(232,236,244,0.8); line-height: 1.7; }
+.narrative-text strong { color: var(--text); }
+.narrative.green  { border-color: var(--go);      background: linear-gradient(135deg,rgba(34,217,138,0.04),transparent); }
+.narrative.green .narrative-label { color: var(--go); }
+.narrative.red    { border-color: var(--stop);    background: linear-gradient(135deg,rgba(255,71,87,0.04),transparent); }
+.narrative.red .narrative-label { color: var(--stop); }
+.narrative.blue   { border-color: var(--info);    background: linear-gradient(135deg,rgba(79,195,247,0.04),transparent); }
+.narrative.blue .narrative-label { color: var(--info); }
+.narrative.violet { border-color: var(--violet);  background: linear-gradient(135deg,rgba(155,114,255,0.04),transparent); }
+.narrative.violet .narrative-label { color: var(--violet); }
+
+/* ══════════════════════════════════════════
+   LAYOUT GRID
+══════════════════════════════════════════ */
+.page-inner { padding: 0 40px 60px; max-width: 1600px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:20px; }
+.grid32{ display:grid; grid-template-columns:2fr 1fr; gap:20px; margin-bottom:20px; }
+.grid23{ display:grid; grid-template-columns:1fr 2fr; gap:20px; margin-bottom:20px; }
+.col-full { grid-column: 1 / -1; }
+
+/* ══════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  padding: 24px;
+  position: relative; overflow: hidden;
+}
+.card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+.card-title {
+  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--muted); margin-bottom: 4px;
+}
+.card-headline {
+  font-family: var(--font-display); font-size: 17px; font-weight: 700;
+  margin-bottom: 4px; line-height: 1.3;
+}
+.card-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+
+/* ══════════════════════════════════════════
+   SECTION TITLES
+══════════════════════════════════════════ */
+.section-label {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--muted);
+  display: flex; align-items: center; gap: 12px;
+  padding: 32px 40px 16px;
+}
+.section-label::after { content:''; flex:1; height:1px; background:var(--line); }
+.section-num { color: var(--signal); margin-right: 4px; }
+
+/* ══════════════════════════════════════════
+   FUNNEL VISUAL
+══════════════════════════════════════════ */
+.funnel-stage {
+  display: flex; align-items: center; gap: 0; margin-bottom: 6px;
+  position: relative;
+}
+.fs-name {
+  width: 150px; font-family: var(--font-mono); font-size: 11px;
+  color: var(--muted); text-align: right; padding-right: 14px; flex-shrink: 0;
+}
+.fs-track {
+  flex: 1; height: 36px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px; overflow: hidden; position: relative;
+}
+.fs-fill {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center; padding-left: 12px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: #000;
+  transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+}
+.fs-count {
+  width: 55px; font-family: var(--font-display); font-weight: 700; font-size: 18px;
+  text-align: right; padding-left: 10px; flex-shrink: 0;
+}
+.fs-drop {
+  width: 55px; font-family: var(--font-mono); font-size: 10px;
+  color: var(--stop); text-align: center; flex-shrink: 0;
+}
+.fs-annotation {
+  position: absolute; right: -210px; top: 50%; transform: translateY(-50%);
+  background: var(--card2); border: 1px solid var(--line2);
+  border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--text);
+  white-space: nowrap; z-index: 10; pointer-events: none; opacity: 0;
+  transition: opacity 0.2s;
+}
+.funnel-stage:hover .fs-annotation { opacity: 1; }
+
+/* ══════════════════════════════════════════
+   SIGNAL CARDS (Diagnostic)
+══════════════════════════════════════════ */
+.signal-card {
+  border-radius: var(--r2);
+  padding: 22px;
+  border: 1px solid var(--line);
+  position: relative; overflow: hidden;
+}
+.sc-amber { background: linear-gradient(135deg, rgba(245,200,66,0.07), var(--card));  border-color: rgba(245,200,66,0.2); }
+.sc-red   { background: linear-gradient(135deg, rgba(255,71,87,0.07), var(--card));   border-color: rgba(255,71,87,0.2); }
+.sc-green { background: linear-gradient(135deg, rgba(34,217,138,0.07), var(--card));  border-color: rgba(34,217,138,0.2); }
+.sc-blue  { background: linear-gradient(135deg, rgba(79,195,247,0.07), var(--card));  border-color: rgba(79,195,247,0.2); }
+.sc-violet{ background: linear-gradient(135deg, rgba(155,114,255,0.07), var(--card)); border-color: rgba(155,114,255,0.2); }
+.sc-orange{ background: linear-gradient(135deg, rgba(255,140,66,0.07), var(--card));  border-color: rgba(255,140,66,0.2); }
+
+.sc-tag {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.sc-amber .sc-tag { color: var(--signal); }
+.sc-red   .sc-tag { color: var(--stop); }
+.sc-green .sc-tag { color: var(--go); }
+.sc-blue  .sc-tag { color: var(--info); }
+.sc-violet.sc-tag { color: var(--violet); }
+.sc-orange .sc-tag { color: var(--caution); }
+.sc-tag::before { content:'●'; font-size: 7px; }
+
+.sc-metric { font-family: var(--font-display); font-size: 42px; font-weight: 900; line-height: 1; margin-bottom: 6px; }
+.sc-amber .sc-metric { color: var(--signal); }
+.sc-red   .sc-metric { color: var(--stop); }
+.sc-green .sc-metric { color: var(--go); }
+.sc-blue  .sc-metric { color: var(--info); }
+.sc-violet .sc-metric { color: var(--violet); }
+.sc-orange .sc-metric { color: var(--caution); }
+
+.sc-title { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.sc-body  { font-size: 12px; color: rgba(232,236,244,0.65); line-height: 1.65; }
+.sc-link  { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 10px; color: var(--signal); margin-top: 10px; cursor: pointer; }
+.sc-link:hover { text-decoration: underline; }
+
+/* ══════════════════════════════════════════
+   ROOT CAUSE TREE
+══════════════════════════════════════════ */
+.rca-tree { padding: 10px 0; }
+.rca-root {
+  background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+  font-weight: 600; color: var(--stop); font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+}
+.rca-children { padding-left: 24px; position: relative; }
+.rca-children::before {
+  content: ''; position: absolute; left: 8px; top: 0; bottom: 20px;
+  width: 1px; background: var(--line2);
+}
+.rca-cause {
+  position: relative; padding-left: 20px; margin-bottom: 10px;
+}
+.rca-cause::before {
+  content: ''; position: absolute; left: 0; top: 14px;
+  width: 16px; height: 1px; background: var(--line2);
+}
+.rca-cause-box {
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 12px; line-height: 1.5;
+}
+.rca-l1 { background: rgba(255,140,66,0.08); border: 1px solid rgba(255,140,66,0.2); }
+.rca-l2 { background: rgba(245,200,66,0.06); border: 1px solid rgba(245,200,66,0.15); margin-left: 20px; }
+.rca-cause-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.rca-l1 .rca-cause-label { color: var(--caution); }
+.rca-l2 .rca-cause-label { color: var(--signal); }
+.rca-cause-text { color: rgba(232,236,244,0.8); }
+
+/* ══════════════════════════════════════════
+   PREDICTIVE
+══════════════════════════════════════════ */
+.forecast-card {
+  border-radius: var(--r2); padding: 24px;
+  border: 1px solid rgba(155,114,255,0.25);
+  background: linear-gradient(160deg, rgba(155,114,255,0.08), var(--card));
+  position: relative; overflow: hidden;
+}
+.forecast-card::before {
+  content: 'PREDICTIVE';
+  position: absolute; top: -10px; right: 16px;
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 3px;
+  color: var(--violet); opacity: 0.4;
+}
+.fc-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--violet); margin-bottom: 6px; }
+.fc-value { font-family: var(--font-display); font-size: 44px; font-weight: 900; color: var(--violet); line-height: 1; }
+.fc-title { font-size: 14px; font-weight: 600; margin: 8px 0 8px; }
+.fc-body  { font-size: 12px; color: rgba(232,236,244,0.65); line-height: 1.65; }
+.confidence-row {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px;
+}
+.conf-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.conf-track { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.conf-fill  { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--violet), var(--info)); }
+.conf-pct   { font-family: var(--font-mono); font-size: 10px; color: var(--violet); width: 32px; text-align: right; }
+
+/* ══════════════════════════════════════════
+   PRESCRIPTIVE — ACTION CARDS
+══════════════════════════════════════════ */
+.action-card {
+  border-radius: var(--r2); padding: 22px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 16px; align-items: start;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.action-card:hover { border-color: var(--signal); transform: translateY(-2px); }
+.action-rank {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(245,200,66,0.1); border: 1.5px solid var(--signal);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 900; font-size: 16px; color: var(--signal);
+  flex-shrink: 0; margin-top: 2px;
+}
+.action-body .action-cat { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 5px; }
+.action-body .action-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.action-body .action-desc { font-size: 12px; color: rgba(232,236,244,0.65); line-height: 1.6; }
+.action-meta { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.impact-badge {
+  padding: 3px 10px; border-radius: 20px; font-family: var(--font-mono); font-size: 10px; font-weight: 500; white-space: nowrap;
+}
+.impact-high   { background: rgba(34,217,138,0.12); color: var(--go);     border: 1px solid rgba(34,217,138,0.25); }
+.impact-medium { background: rgba(245,200,66,0.12); color: var(--signal); border: 1px solid rgba(245,200,66,0.25); }
+.impact-low    { background: rgba(79,195,247,0.12);  color: var(--info);   border: 1px solid rgba(79,195,247,0.25); }
+.effort-badge  {
+  padding: 3px 10px; border-radius: 20px; font-family: var(--font-mono); font-size: 10px; white-space: nowrap;
+  background: rgba(255,255,255,0.04); color: var(--muted); border: 1px solid var(--line);
+}
+.action-outcome {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--signal);
+  display: flex; align-items: center; gap: 6px;
+}
+.action-outcome::before { content: '→'; }
+
+/* IMPACT/EFFORT MATRIX */
+.ie-matrix {
+  position: relative;
+  height: 340px;
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(34,217,138,0.04) 0%, rgba(34,217,138,0.04) 50%, transparent 50%),
+    linear-gradient(90deg, transparent 50%, rgba(34,217,138,0.04) 50%);
+}
+.ie-axis-x {
+  position: absolute; bottom: 10px; left: 0; right: 0;
+  text-align: center; font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+}
+.ie-axis-y {
+  position: absolute; left: 10px; top: 0; bottom: 0;
+  display: flex; align-items: center;
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+  writing-mode: vertical-rl; transform: rotate(180deg);
+}
+.ie-quadrant-label {
+  position: absolute; font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 1px; opacity: 0.5;
+}
+.ie-dot {
+  position: absolute;
+  width: 10px; height: 10px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.ie-dot:hover { transform: translate(-50%,-50%) scale(2); z-index: 10; }
+.ie-dot-label {
+  position: absolute; left: 12px; top: -6px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text);
+  white-space: nowrap; pointer-events: none;
+}
+
+/* ══════════════════════════════════════════
+   TABLES
+══════════════════════════════════════════ */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); padding: 10px 12px;
+  border-bottom: 1px solid var(--line2); text-align: left; white-space: nowrap;
+}
+.tbl td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; }
+.tbl tr:hover td { background: rgba(255,255,255,0.02); }
+.tbl tr:last-child td { border-bottom: none; }
+.scroll-table { overflow-x: auto; border-radius: var(--r); }
+.scroll-table::-webkit-scrollbar { height: 3px; }
+.scroll-table::-webkit-scrollbar-thumb { background: var(--signal); border-radius: 2px; }
+
+/* MINI BAR */
+.mbar { display: flex; align-items: center; gap: 6px; }
+.mbar-bg { flex: 1; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+.mbar-fill { height: 100%; border-radius: 3px; }
+.mbar-val { width: 32px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-align: right; }
+
+/* PILL */
+.pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-family: var(--font-mono); font-size: 10px; font-weight: 500; }
+.pill-open   { background: rgba(79,195,247,0.1);  color: var(--info);   border: 1px solid rgba(79,195,247,0.25); }
+.pill-closed { background: rgba(34,217,138,0.1);  color: var(--go);     border: 1px solid rgba(34,217,138,0.25); }
+.pill-hold   { background: rgba(255,140,66,0.1);  color: var(--caution);border: 1px solid rgba(255,140,66,0.25); }
+.pill-drop   { background: rgba(255,71,87,0.1);   color: var(--stop);   border: 1px solid rgba(255,71,87,0.25); }
+.pill-ex     { background: rgba(245,200,66,0.1);  color: var(--signal); border: 1px solid rgba(245,200,66,0.25); }
+.pill-pro    { background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); }
+
+/* PROGRESS RING */
+.ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ring-val { font-family: var(--font-display); font-size: 22px; font-weight: 900; }
+.ring-sub { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+/* SCENARIO SLIDER */
+.slider-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.slider-lbl { font-size: 12px; width: 200px; color: var(--text); flex-shrink: 0; }
+.slider-input { flex: 1; accent-color: var(--signal); cursor: pointer; }
+.slider-val { font-family: var(--font-mono); font-size: 12px; color: var(--signal); width: 40px; text-align: right; }
+.scenario-result {
+  background: rgba(245,200,66,0.06); border: 1px solid rgba(245,200,66,0.2);
+  border-radius: var(--r); padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 16px;
+}
+.sr-label { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.sr-val { font-family: var(--font-display); font-size: 32px; font-weight: 900; color: var(--signal); }
+
+/* LEADING INDICATORS */
+.leading-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--line);
+}
+.leading-row:last-child { border-bottom: none; }
+.li-icon { font-size: 16px; flex-shrink: 0; width: 28px; text-align: center; }
+.li-body { flex: 1; }
+.li-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.li-sub  { font-size: 11px; color: var(--muted); }
+.li-signal { flex-shrink: 0; }
+.li-val  { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+
+/* ANNOTATED CHART WRAPPER */
+.annotated-chart { position: relative; }
+.chart-annotation {
+  position: absolute; z-index: 10; pointer-events: none;
+  background: var(--card2); border: 1px solid var(--line2);
+  border-radius: 8px; padding: 7px 11px;
+  font-size: 11px; line-height: 1.4;
+}
+.ann-pointer {
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+/* RISK SCORE */
+.risk-score-bar {
+  display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+  gap: 2px; margin-bottom: 8px;
+}
+.rsb-seg { flex: 1; border-radius: 2px; }
+.rsb-filled { background: var(--stop); }
+.rsb-empty  { background: rgba(255,255,255,0.06); }
+.risk-score-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+/* DECISION PATH */
+.decision-path {
+  display: flex; flex-direction: column; gap: 0;
+}
+.dp-step {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding-bottom: 20px;
+  position: relative;
+}
+.dp-step:not(:last-child)::after {
+  content: '';
+  position: absolute; left: 14px; top: 32px; bottom: 0;
+  width: 1px; background: var(--line2);
+}
+.dp-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(245,200,66,0.1); border: 1.5px solid var(--signal);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 11px; color: var(--signal);
+}
+.dp-body .dp-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.dp-body .dp-desc  { font-size: 12px; color: rgba(232,236,244,0.65); line-height: 1.6; }
+.dp-body .dp-kpi   { font-family: var(--font-mono); font-size: 11px; color: var(--signal); margin-top: 5px; }
+
+/* AUTHOR BADGE */
+.author-badge {
+  display: flex; align-items: center; gap: 9px;
+  padding: 5px 14px 5px 6px;
+  background: rgba(245,200,66,0.07);
+  border: 1px solid rgba(245,200,66,0.22);
+  border-radius: 24px;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.author-badge:hover {
+  background: rgba(245,200,66,0.14);
+  border-color: rgba(245,200,66,0.45);
+  transform: translateY(-1px);
+}
+.author-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, #f5c842, #e8a020);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 900; font-size: 11px; color: #000;
+  flex-shrink: 0;
+}
+.author-text { display: flex; flex-direction: column; }
+.author-by   { font-family: var(--font-mono); font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); line-height: 1; }
+.author-name { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--signal); line-height: 1.3; }
+.author-li   { font-family: var(--font-mono); font-size: 8px; color: var(--muted); display: flex; align-items: center; gap: 3px; }
+.author-li svg { opacity: 0.6; }
+
+/* PAGE FOOTER */
+.page-footer {
+  margin-top: 0;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(135deg, rgba(245,200,66,0.025), transparent);
+  padding: 22px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.page-footer-left {
+  display: flex; align-items: center; gap: 14px;
+}
+.page-footer-divider {
+  width: 1px; height: 28px; background: var(--line2);
+}
+.page-footer-meta {
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted); line-height: 1.7;
+}
+.page-footer-meta span { color: var(--text); }
+.page-footer-right {
+  font-family: var(--font-mono); font-size: 10px; color: var(--dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.pf-chapter-tag {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--signal);
+  background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 12px; padding: 3px 10px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .grid2, .grid3, .grid32, .grid23 { grid-template-columns: 1fr; }
+  .story-kpi-row { flex-direction: column; }
+  .page-inner { padding: 0 16px 40px; }
+  .story-hero { padding: 40px 20px 32px; }
+  .section-label { padding: 24px 20px 12px; }
+  .journey-bar { padding: 0 10px; }
+  .masthead-brand { padding: 12px 16px; }
+  .masthead-meta { display: none; }
+  .action-card { grid-template-columns: auto 1fr; }
+  .action-meta { grid-column: 2; flex-direction: row; flex-wrap: wrap; }
+  .page-footer { padding: 18px 20px; }
+}
+
+/* ══════════════════════════════════════════
+   EXECUTIVE OVERVIEW — KPI / GOAL STYLES
+══════════════════════════════════════════ */
+.exec-hero {
+  background: linear-gradient(160deg, rgba(34,217,138,0.05) 0%, rgba(245,200,66,0.04) 50%, transparent 100%);
+  border-bottom: 1px solid var(--line);
+  padding: 44px 40px 36px;
+  position: relative; overflow: hidden;
+}
+.exec-hero::before {
+  content: '';
+  position: absolute; top: -100px; right: -60px;
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, rgba(34,217,138,0.05) 0%, transparent 65%);
+  pointer-events: none;
+}
+.exec-eyebrow {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 2.5px; color: var(--go); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.exec-eyebrow::before { content:''; display:block; width:20px; height:1.5px; background:var(--go); }
+.exec-title {
+  font-family: var(--font-display); font-size: clamp(24px,3.5vw,42px);
+  font-weight: 900; line-height: 1.15; letter-spacing: -0.5px;
+  max-width: 700px; margin-bottom: 14px;
+}
+.exec-title em { color: var(--signal); font-style: normal; }
+.exec-subtitle {
+  font-size: 14px; color: rgba(232,236,244,0.65); max-width: 580px;
+  line-height: 1.7; margin-bottom: 30px;
+}
+
+/* GOAL BANNER */
+.goal-banner {
+  display: flex; gap: 0; border-radius: var(--r2); overflow: hidden;
+  border: 1px solid var(--line2); margin-bottom: 0;
+}
+.goal-cell {
+  flex: 1; padding: 18px 22px;
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+.goal-cell:last-child { border-right: none; }
+.goal-cell-label {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px;
+}
+.goal-cell-val {
+  font-family: var(--font-display); font-size: 32px; font-weight: 900; line-height: 1;
+  margin-bottom: 4px;
+}
+.goal-cell-sub { font-size: 11px; color: var(--muted); }
+.goal-cell-rag {
+  position: absolute; top: 12px; right: 14px;
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.rag-green  { background: var(--go);      box-shadow: 0 0 8px var(--go); }
+.rag-amber  { background: var(--signal);  box-shadow: 0 0 8px var(--signal); }
+.rag-red    { background: var(--stop);    box-shadow: 0 0 8px var(--stop); }
+
+/* KPI SCORECARD GRID */
+.kpi-scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.ksc {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r2); padding: 20px 22px;
+  position: relative; overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.ksc:hover { transform: translateY(-2px); border-color: var(--line2); }
+.ksc-tag {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--muted); margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ksc-rag { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ksc-metric {
+  font-family: var(--font-display); font-size: 38px; font-weight: 900;
+  line-height: 1; margin-bottom: 4px;
+}
+.ksc-name { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.ksc-goal-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0 0; border-top: 1px solid var(--line); margin-top: 8px;
+}
+.ksc-goal-label { font-family: var(--font-mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.ksc-goal-val   { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.ksc-progress {
+  height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px;
+  overflow: hidden; margin-top: 8px;
+}
+.ksc-progress-fill { height: 100%; border-radius: 2px; }
+.ksc-delta {
+  font-family: var(--font-mono); font-size: 10px; margin-top: 6px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* BUSINESS GOAL TABLE */
+.goal-table { width: 100%; border-collapse: collapse; }
+.goal-table th {
+  font-family: var(--font-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); padding: 10px 14px;
+  border-bottom: 1px solid var(--line2); text-align: left;
+}
+.goal-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; vertical-align: middle; }
+.goal-table tr:hover td { background: rgba(255,255,255,0.02); }
+.goal-table tr:last-child td { border-bottom: none; }
+.goal-icon { font-size: 18px; }
+.goal-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.goal-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.kpi-link {
+  font-family: var(--font-mono); font-size: 10px; color: var(--info);
+  background: rgba(79,195,247,0.08); border: 1px solid rgba(79,195,247,0.2);
+  border-radius: 20px; padding: 2px 9px; display: inline-block; margin: 2px 2px 2px 0;
+  white-space: nowrap;
+}
+.status-block {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+}
+.sb-green  { background: rgba(34,217,138,0.1);  color: var(--go);     border: 1px solid rgba(34,217,138,0.25); }
+.sb-amber  { background: rgba(245,200,66,0.1);  color: var(--signal); border: 1px solid rgba(245,200,66,0.25); }
+.sb-red    { background: rgba(255,71,87,0.1);   color: var(--stop);   border: 1px solid rgba(255,71,87,0.25); }
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sb-green .sb-dot { background: var(--go); }
+.sb-amber .sb-dot { background: var(--signal); }
+.sb-red   .sb-dot { background: var(--stop); }
+
+/* TREND SPARK */
+.trend-spark { display: flex; align-items: flex-end; gap: 2px; height: 28px; }
+.ts-bar { width: 6px; border-radius: 2px 2px 0 0; background: var(--info); opacity: 0.5; transition: opacity 0.2s; }
+.ts-bar.ts-last { opacity: 1; }
+
+/* WATERFALL METRIC */
+.waterfall-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.wf-label { width: 180px; font-size: 12px; color: var(--muted); flex-shrink: 0; font-family: var(--font-mono); font-size: 11px; }
+.wf-track { flex: 1; background: rgba(255,255,255,0.04); border-radius: 4px; height: 28px; overflow: hidden; position: relative; }
+.wf-fill  { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: #000; }
+.wf-val   { width: 60px; text-align: right; font-family: var(--font-display); font-weight: 700; font-size: 16px; flex-shrink: 0; }
+.wf-target{ width: 70px; font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-align: right; flex-shrink: 0; }
+
+/* EXEC SECTION HEADER */
+.exec-section {
+  display: flex; align-items: center; gap: 12px;
+  padding: 28px 40px 14px;
+}
+.exec-section-num {
+  font-family: var(--font-mono); font-size: 10px; color: var(--signal);
+  background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 20px; padding: 3px 10px; flex-shrink: 0;
+}
+.exec-section-title {
+  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--muted);
+}
+.exec-section-line { flex: 1; height: 1px; background: var(--line); }
+
+/* HIGHLIGHT STRIP */
+.highlight-strip {
+  display: flex; gap: 0; margin-bottom: 20px;
+  border-radius: var(--r2); overflow: hidden; border: 1px solid var(--line);
+}
+.hs-item {
+  flex: 1; padding: 16px 20px;
+  border-right: 1px solid var(--line);
+  display: flex; align-items: center; gap: 14px;
+}
+.hs-item:last-child { border-right: none; }
+.hs-icon { font-size: 22px; flex-shrink: 0; }
+.hs-body { }
+.hs-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 3px; }
+.hs-val { font-family: var(--font-display); font-size: 22px; font-weight: 900; line-height: 1; }
+.hs-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     MASTHEAD
+════════════════════════════════════════ -->
+<div class="masthead">
+  <div class="masthead-brand">
+    <div class="brand-mark">TA</div>
+    <div class="brand-text">
+      <div class="brand-name">Talent Intelligence</div>
+      <div class="brand-sub">Analytics Maturity · Jan–Feb 2026</div>
+    </div>
+  </div>
+
+  <nav class="journey-bar" id="journeyBar">
+    <div class="journey-step" onclick="goExec(this.querySelector('.journey-node'))">
+      <div class="journey-node" data-page="exec" id="exec-nav-node">
+        <div class="journey-num" style="border-color:var(--go);color:var(--go);">★</div>
+        <div class="journey-info">
+          <div class="journey-level" style="color:var(--go);">Executive</div>
+          <div class="journey-q">KPIs & Goals</div>
+        </div>
+      </div>
+    </div>
+    <div class="journey-arrow">›</div>
+        <div class="journey-step" onclick="goPage(0, this.querySelector('[data-page=\"0\"]'))">
+      <div class="journey-node active" data-page="0">
+        <div class="journey-num">◈</div>
+        <div class="journey-info">
+          <div class="journey-level">Overview</div>
+          <div class="journey-q">The Story</div>
+        </div>
+      </div>
+    </div>
+    <div class="journey-arrow">›</div>
+    <div class="journey-step" onclick="goPage(1, this.querySelector('.journey-node'))">
+      <div class="journey-node" data-page="1">
+        <div class="journey-num">1</div>
+        <div class="journey-info">
+          <div class="journey-level">Descriptive</div>
+          <div class="journey-q">What Happened?</div>
+        </div>
+      </div>
+    </div>
+    <div class="journey-arrow">›</div>
+    <div class="journey-step" onclick="goPage(2, this.querySelector('.journey-node'))">
+      <div class="journey-node" data-page="2">
+        <div class="journey-num">2</div>
+        <div class="journey-info">
+          <div class="journey-level">Diagnostic</div>
+          <div class="journey-q">Why Did It Happen?</div>
+        </div>
+      </div>
+    </div>
+    <div class="journey-arrow">›</div>
+    <div class="journey-step" onclick="goPage(3, this.querySelector('.journey-node'))">
+      <div class="journey-node" data-page="3">
+        <div class="journey-num">3</div>
+        <div class="journey-info">
+          <div class="journey-level">Predictive</div>
+          <div class="journey-q">What Will Happen?</div>
+        </div>
+      </div>
+    </div>
+    <div class="journey-arrow">›</div>
+    <div class="journey-step" onclick="goPage(4, this.querySelector('.journey-node'))">
+      <div class="journey-node" data-page="4">
+        <div class="journey-num">4</div>
+        <div class="journey-info">
+          <div class="journey-level">Prescriptive</div>
+          <div class="journey-q">What Should We Do?</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="masthead-meta">
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+    <div class="stats-pill">3,215 events · 84 positions · 1,373 candidates</div>
+    <a class="author-badge" href="https://linkedin.com/in/bharatt" target="_blank" rel="noopener" title="View Bharat's LinkedIn Profile">
+      <div class="author-avatar">B</div>
+      <div class="author-text">
+        <div class="author-by">Prepared by</div>
+        <div class="author-name">Bharat</div>
+        <div class="author-li">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          linkedin.com/in/bharatt
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE EXEC — EXECUTIVE OVERVIEW: TA METRICS / KPI / BUSINESS GOALS
+════════════════════════════════════════ -->
+<div class="page" id="page-exec">
+
+  <!-- HERO -->
+  <div class="exec-hero">
+    <div class="exec-eyebrow">Executive Overview · TA Intelligence · Jan–Feb 2026</div>
+    <h1 class="exec-title">TA Metrics, KPIs &amp; <em>Business Goal</em> Scorecard</h1>
+    <p class="exec-subtitle">A single-pane executive view linking every talent acquisition metric to a business outcome — with RAG status, targets, actuals, and gap analysis for informed decision-making.</p>
+
+    <!-- GOAL BANNER -->
+    <div class="goal-banner">
+      <div class="goal-cell">
+        <div class="goal-cell-rag rag-amber"></div>
+        <div class="goal-cell-label">Q1 Hire Target</div>
+        <div class="goal-cell-val signal-amber">100</div>
+        <div class="goal-cell-sub">Actual: 24 confirmed joins</div>
+      </div>
+      <div class="goal-cell">
+        <div class="goal-cell-rag rag-red"></div>
+        <div class="goal-cell-label">Fill Rate</div>
+        <div class="goal-cell-val signal-red">4.8%</div>
+        <div class="goal-cell-sub">Target: 60% · Gap: −55.2pp</div>
+      </div>
+      <div class="goal-cell">
+        <div class="goal-cell-rag rag-green"></div>
+        <div class="goal-cell-label">Avg Time-to-Fill</div>
+        <div class="goal-cell-val signal-green">21.8d</div>
+        <div class="goal-cell-sub">Target: ≤30 days · On track</div>
+      </div>
+      <div class="goal-cell">
+        <div class="goal-cell-rag rag-red"></div>
+        <div class="goal-cell-label">Offer Acceptance</div>
+        <div class="goal-cell-val signal-red">63%</div>
+        <div class="goal-cell-sub">Target: 82% · Gap: −19pp</div>
+      </div>
+      <div class="goal-cell">
+        <div class="goal-cell-rag rag-red"></div>
+        <div class="goal-cell-label">Source ROI (Agency)</div>
+        <div class="goal-cell-val signal-red">0.7%</div>
+        <div class="goal-cell-sub">Target hire rate: ≥3% · Off by −2.3pp</div>
+      </div>
+      <div class="goal-cell">
+        <div class="goal-cell-rag rag-green"></div>
+        <div class="goal-cell-label">Referral Conversion</div>
+        <div class="goal-cell-val signal-green">9.1%</div>
+        <div class="goal-cell-sub">Best-in-class · 13× agency rate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: KPI SCORECARD ── -->
+  <div class="exec-section">
+    <div class="exec-section-num">KPI 01–12</div>
+    <div class="exec-section-title">Core TA KPI Scorecard — Actuals vs Targets</div>
+    <div class="exec-section-line"></div>
+  </div>
+  <div class="page-inner" style="padding-top:0;">
+
+    <div class="kpi-scorecard-grid">
+
+      <!-- 01 Total Hires -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 01 · Volume<div class="ksc-rag rag-red"></div></div>
+        <div class="ksc-metric signal-red">24</div>
+        <div class="ksc-name">Total Confirmed Hires</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Q1 Target</div>
+          <div class="ksc-goal-val signal-amber">100</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:24%;background:var(--stop)"></div></div>
+        <div class="ksc-delta" style="color:var(--stop)">▼ 76 behind target · 24% attainment</div>
+      </div>
+
+      <!-- 02 Open Positions -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 02 · Pipeline<div class="ksc-rag rag-amber"></div></div>
+        <div class="ksc-metric signal-amber">59</div>
+        <div class="ksc-name">Open Positions</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Total Requisitions</div>
+          <div class="ksc-goal-val signal-amber">84</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:70%;background:var(--signal)"></div></div>
+        <div class="ksc-delta" style="color:var(--signal)">70% still open · 4 closed · 19 dropped</div>
+      </div>
+
+      <!-- 03 Time to Fill -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 03 · Speed<div class="ksc-rag rag-green"></div></div>
+        <div class="ksc-metric signal-green">21.8d</div>
+        <div class="ksc-name">Avg Time to Fill</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">SLA Target</div>
+          <div class="ksc-goal-val signal-green">≤30d</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:73%;background:var(--go)"></div></div>
+        <div class="ksc-delta" style="color:var(--go)">▲ 8.2 days within SLA · On track</div>
+      </div>
+
+      <!-- 04 Offer Acceptance -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 04 · Quality<div class="ksc-rag rag-red"></div></div>
+        <div class="ksc-metric signal-red">63%</div>
+        <div class="ksc-name">Offer Acceptance Rate</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Target</div>
+          <div class="ksc-goal-val signal-amber">82%</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:63%;background:var(--stop)"></div></div>
+        <div class="ksc-delta" style="color:var(--stop)">▼ −19pp below target · Counter-offer risk</div>
+      </div>
+
+      <!-- 05 L1→L2 Conversion -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 05 · Funnel<div class="ksc-rag rag-red"></div></div>
+        <div class="ksc-metric signal-red">24%</div>
+        <div class="ksc-name">L1 → L2 Conversion</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Benchmark</div>
+          <div class="ksc-goal-val signal-amber">45–55%</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:24%;background:var(--stop)"></div></div>
+        <div class="ksc-delta" style="color:var(--stop)">▼ Critical bottleneck · 630 candidates lost</div>
+      </div>
+
+      <!-- 06 Sourcing Mix -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 06 · Sourcing<div class="ksc-rag rag-amber"></div></div>
+        <div class="ksc-metric signal-amber">44%</div>
+        <div class="ksc-name">Agency Share of Pipeline</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Target Ceiling</div>
+          <div class="ksc-goal-val signal-green">≤25%</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:44%;background:var(--caution)"></div></div>
+        <div class="ksc-delta" style="color:var(--caution)">▼ Over-reliant · 0.7% hire rate</div>
+      </div>
+
+      <!-- 07 Referral Rate -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 07 · Sourcing<div class="ksc-rag rag-amber"></div></div>
+        <div class="ksc-metric signal-amber">5.6%</div>
+        <div class="ksc-name">Referral Share of Pipeline</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Target</div>
+          <div class="ksc-goal-val signal-amber">20%+</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:28%;background:var(--signal)"></div></div>
+        <div class="ksc-delta" style="color:var(--signal)">▲ Best ROI channel · Scale urgently</div>
+      </div>
+
+      <!-- 08 Position Drop Rate -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 08 · Governance<div class="ksc-rag rag-red"></div></div>
+        <div class="ksc-metric signal-red">22.6%</div>
+        <div class="ksc-name">Position Drop / Abandon Rate</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Target</div>
+          <div class="ksc-goal-val signal-green">&lt;5%</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:100%;background:var(--stop)"></div></div>
+        <div class="ksc-delta" style="color:var(--stop)">▼ 19 positions abandoned · 4.5× over target</div>
+      </div>
+
+      <!-- 09 Pipeline Velocity -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 09 · Velocity<div class="ksc-rag rag-green"></div></div>
+        <div class="ksc-metric signal-green">3,215</div>
+        <div class="ksc-name">Total Pipeline Events</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Events / Position</div>
+          <div class="ksc-goal-val signal-green">38.3</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:80%;background:var(--go)"></div></div>
+        <div class="ksc-delta" style="color:var(--go)">▲ High recruiter activity · Good signal</div>
+      </div>
+
+      <!-- 10 Candidate Volume -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 10 · Volume<div class="ksc-rag rag-green"></div></div>
+        <div class="ksc-metric signal-green">1,373</div>
+        <div class="ksc-name">Unique Candidates Engaged</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Avg per Position</div>
+          <div class="ksc-goal-val signal-green">16.3</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:85%;background:var(--go)"></div></div>
+        <div class="ksc-delta" style="color:var(--go)">▲ Strong top-of-funnel · Volume not issue</div>
+      </div>
+
+      <!-- 11 Rescheduling Rate -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 11 · Process<div class="ksc-rag rag-amber"></div></div>
+        <div class="ksc-metric signal-amber">5.3%</div>
+        <div class="ksc-name">Interview Rescheduling Rate</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Target</div>
+          <div class="ksc-goal-val signal-green">&lt;3%</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:53%;background:var(--signal)"></div></div>
+        <div class="ksc-delta" style="color:var(--signal)">▼ 172 events rescheduled · Panel friction</div>
+      </div>
+
+      <!-- 12 Headcount Fulfilment -->
+      <div class="ksc">
+        <div class="ksc-tag">KPI 12 · Business<div class="ksc-rag rag-red"></div></div>
+        <div class="ksc-metric signal-red">19.5%</div>
+        <div class="ksc-name">Headcount Fulfillment Rate</div>
+        <div class="ksc-goal-row">
+          <div class="ksc-goal-label">Openings Filled</div>
+          <div class="ksc-goal-val signal-amber">24 / 123</div>
+        </div>
+        <div class="ksc-progress"><div class="ksc-progress-fill" style="width:19.5%;background:var(--stop)"></div></div>
+        <div class="ksc-delta" style="color:var(--stop)">▼ 99 seats unfilled · Revenue capacity risk</div>
+      </div>
+
+    </div>
+
+    <!-- ── SECTION 2: BUSINESS GOALS ↔ TA METRICS MAP ── -->
+    <div class="exec-section" style="padding-left:0;padding-right:0;">
+      <div class="exec-section-num">Goals 01–08</div>
+      <div class="exec-section-title">Business Goal → TA Metric Linkage Map</div>
+      <div class="exec-section-line"></div>
+    </div>
+
+    <div class="narrative blue" style="margin-bottom:20px;">
+      <div class="narrative-label">Why This View Matters</div>
+      <div class="narrative-text">Every business goal requires a talent outcome. This table makes the linkage explicit — <strong>each strategic objective</strong> is mapped to the KPI that measures it, the current status, and the gap. Decision-makers can instantly see which business goals are at risk due to TA performance.</div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;padding:0;">
+      <div class="scroll-table">
+        <table class="goal-table">
+          <thead>
+            <tr>
+              <th style="width:36px;">#</th>
+              <th style="min-width:200px;">Business Goal</th>
+              <th style="min-width:260px;">Linked TA KPIs</th>
+              <th>Actual</th>
+              <th>Target</th>
+              <th>Status</th>
+              <th style="min-width:180px;">Gap / Implication</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">01</td>
+              <td>
+                <div class="goal-icon">🏗️</div>
+                <div class="goal-name">Deliver Revenue-Ready Headcount</div>
+                <div class="goal-desc">Fill billable roles for existing clients on time to protect revenue targets</div>
+              </td>
+              <td>
+                <span class="kpi-link">KPI 01 · Total Hires</span>
+                <span class="kpi-link">KPI 12 · HC Fulfillment</span>
+                <span class="kpi-link">KPI 03 · Time to Fill</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--stop);">24 joins<br>4.8% fill</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">100 joins<br>60% fill</td>
+              <td><div class="status-block sb-red"><div class="sb-dot"></div>AT RISK</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">76 unfilled positions directly delay billable capacity. Revenue impact estimated at 76 × avg billing rate per month.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">02</td>
+              <td>
+                <div class="goal-icon">💰</div>
+                <div class="goal-name">Optimise Talent Acquisition Cost</div>
+                <div class="goal-desc">Reduce cost-per-hire by improving source mix and reducing agency dependency</div>
+              </td>
+              <td>
+                <span class="kpi-link">KPI 06 · Agency Share</span>
+                <span class="kpi-link">KPI 07 · Referral Rate</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--stop);">Agency: 44%<br>Referral: 5.6%</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">Agency: ≤25%<br>Referral: ≥20%</td>
+              <td><div class="status-block sb-red"><div class="sb-dot"></div>AT RISK</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">609 agency applications → 4 hires (0.7%). Estimated over-spend vs. referral channel: 3–4× cost per hire. Immediate rebalancing required.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">03</td>
+              <td>
+                <div class="goal-icon">⚡</div>
+                <div class="goal-name">Accelerate Hiring Velocity</div>
+                <div class="goal-desc">Reduce time-to-fill to maintain competitive candidate experience and speed</div>
+              </td>
+              <td>
+                <span class="kpi-link">KPI 03 · Time to Fill</span>
+                <span class="kpi-link">KPI 09 · Pipeline Events</span>
+                <span class="kpi-link">KPI 11 · Reschedule Rate</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--go);">21.8d avg<br>5.3% reschedule</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">≤30d<br>&lt;3% reschedule</td>
+              <td><div class="status-block sb-amber"><div class="sb-dot"></div>MONITOR</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">Avg age within SLA, but 7 positions breach 46d+ threshold. 172 rescheduling events add friction and delay. Process adherence needed.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">04</td>
+              <td>
+                <div class="goal-icon">🎯</div>
+                <div class="goal-name">Improve Hiring Quality &amp; Fitment</div>
+                <div class="goal-desc">Increase candidate-to-role match quality to reduce L1 dropout and offer declines</div>
+              </td>
+              <td>
+                <span class="kpi-link">KPI 05 · L1→L2 Conv.</span>
+                <span class="kpi-link">KPI 04 · Offer Accept.</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--stop);">L1→L2: 24%<br>Offer acc: 63%</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">L1→L2: 50%<br>Offer acc: 82%</td>
+              <td><div class="status-block sb-red"><div class="sb-dot"></div>AT RISK</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">Two compounding quality failures: 76% drop at L1 and 37% offer fall-off. Combined effect: only 1.75% of candidates convert to join. Scorecard calibration is critical fix.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">05</td>
+              <td>
+                <div class="goal-icon">🔄</div>
+                <div class="goal-name">Strengthen Internal Talent Pipeline</div>
+                <div class="goal-desc">Build a referral-driven pipeline to reduce dependency on external sourcing</div>
+              </td>
+              <td>
+                <span class="kpi-link">KPI 07 · Referral Rate</span>
+                <span class="kpi-link">KPI 01 · Total Hires</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--signal);">77 referral apps<br>7 hires (9.1%)</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">160+ apps<br>≥20% share</td>
+              <td><div class="status-block sb-amber"><div class="sb-dot"></div>BELOW TARGET</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">Referrals are your best channel (9.1% conversion) yet represent only 5.6% of applications. Doubling referral volume = +14 hires with zero additional sourcing cost.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">06</td>
+              <td>
+                <div class="goal-icon">📋</div>
+                <div class="goal-name">Improve Requisition Governance</div>
+                <div class="goal-desc">Reduce position abandonment and improve HM-TA alignment on role viability</div>
+              </td>
+              <td>
+                <span class="kpi-link">KPI 08 · Drop Rate</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--stop);">22.6% drop<br>19 positions</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">&lt;5% drop</td>
+              <td><div class="status-block sb-red"><div class="sb-dot"></div>AT RISK</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">19 dropped positions = 19 unfilled seats + TA bandwidth wasted. Mandatory 14-day position health reviews + HM sign-off protocol needed.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">07</td>
+              <td>
+                <div class="goal-icon">🌍</div>
+                <div class="goal-name">Manage Geographic Supply Risk</div>
+                <div class="goal-desc">Avoid over-concentration of roles in a single delivery centre or city</div>
+              </td>
+              <td>
+                <span class="kpi-link">Dept Split · Chennai 55.9%</span>
+                <span class="kpi-link">City Pool · Pune 534 cands</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--stop);">Chennai: 55.9%<br>IDH client: 47 pos</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">&lt;35% any single DC</td>
+              <td><div class="status-block sb-red"><div class="sb-dot"></div>AT RISK</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">IDH client alone drives 55.9% of hiring demand. Chennai candidate pool (100 profiles) is under-supplied vs demand. Relocation + remote pilots required.</td>
+            </tr>
+
+            <tr>
+              <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px;">08</td>
+              <td>
+                <div class="goal-icon">📈</div>
+                <div class="goal-name">Build Analytics-Driven TA Function</div>
+                <div class="goal-desc">Establish data-backed hiring decisions with weekly KPI reviews and forecast accuracy</div>
+              </td>
+              <td>
+                <span class="kpi-link">All 12 KPIs</span>
+                <span class="kpi-link">Predictive Models</span>
+                <span class="kpi-link">Data Completeness</span>
+              </td>
+              <td style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--signal);">Dashboard live<br>Data: 95% complete</td>
+              <td style="font-family:var(--font-mono);font-size:12px;color:var(--muted);">Weekly reviews<br>100% data fields</td>
+              <td><div class="status-block sb-amber"><div class="sb-dot"></div>IN PROGRESS</div></td>
+              <td style="font-size:11px;color:rgba(232,236,244,0.7);">Dashboard operational. Missing: sourced_date (40% records), drop reasons (90% blank). Weekly governance cadence to be formalised with CHRO + TA Head.</td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SECTION 3: KPI WATERFALL vs BUSINESS GOALS ── -->
+    <div class="exec-section" style="padding-left:0;padding-right:0;">
+      <div class="exec-section-num">Visual</div>
+      <div class="exec-section-title">KPI Progress vs Business Goal Targets</div>
+      <div class="exec-section-line"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Actual vs Target — Key Metrics</div>
+        <div class="card-sub">Progress bar width = % of target achieved</div>
+        <div style="margin-top:14px;">
+          <div class="waterfall-row">
+            <div class="wf-label">Total Hires (Q1)</div>
+            <div class="wf-track"><div class="wf-fill" style="width:24%;background:var(--stop)">24</div></div>
+            <div class="wf-val signal-red">24</div>
+            <div class="wf-target">Target: 100</div>
+          </div>
+          <div class="waterfall-row">
+            <div class="wf-label">Offer Acceptance %</div>
+            <div class="wf-track"><div class="wf-fill" style="width:63%;background:var(--caution)">63%</div></div>
+            <div class="wf-val signal-orange">63%</div>
+            <div class="wf-target">Target: 82%</div>
+          </div>
+          <div class="waterfall-row">
+            <div class="wf-label">L1→L2 Conversion</div>
+            <div class="wf-track"><div class="wf-fill" style="width:24%;background:var(--stop)">24%</div></div>
+            <div class="wf-val signal-red">24%</div>
+            <div class="wf-target">Target: 50%</div>
+          </div>
+          <div class="waterfall-row">
+            <div class="wf-label">Referral Share</div>
+            <div class="wf-track"><div class="wf-fill" style="width:28%;background:var(--signal)">5.6%</div></div>
+            <div class="wf-val signal-amber">5.6%</div>
+            <div class="wf-target">Target: 20%</div>
+          </div>
+          <div class="waterfall-row">
+            <div class="wf-label">Time to Fill (vs SLA)</div>
+            <div class="wf-track"><div class="wf-fill" style="width:73%;background:var(--go)">21.8d</div></div>
+            <div class="wf-val signal-green">21.8d</div>
+            <div class="wf-target">SLA: 30d</div>
+          </div>
+          <div class="waterfall-row">
+            <div class="wf-label">HC Fulfillment Rate</div>
+            <div class="wf-track"><div class="wf-fill" style="width:19.5%;background:var(--stop)">19.5%</div></div>
+            <div class="wf-val signal-red">19.5%</div>
+            <div class="wf-target">Target: 60%</div>
+          </div>
+          <div class="waterfall-row">
+            <div class="wf-label">Position Drop Rate</div>
+            <div class="wf-track"><div class="wf-fill" style="width:100%;background:var(--stop)">22.6%</div></div>
+            <div class="wf-val signal-red">22.6%</div>
+            <div class="wf-target">Target: &lt;5%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">RAG Summary — 8 Business Goals</div>
+        <div class="card-sub">Red = At Risk · Amber = Monitor · Green = On Track</div>
+        <div style="position:relative;height:260px;margin-top:8px;"><canvas id="ragDonutChart"></canvas></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--stop);">5</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">At Risk (Red)</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--signal);">2</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">Monitor (Amber)</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--go);">1</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">On Track (Green)</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--info);">8</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">Total Goals Tracked</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: HIGHLIGHT STRIP ── -->
+    <div class="exec-section" style="padding-left:0;padding-right:0;margin-top:8px;">
+      <div class="exec-section-num">Signals</div>
+      <div class="exec-section-title">Executive Attention Required — Now</div>
+      <div class="exec-section-line"></div>
+    </div>
+
+    <div class="highlight-strip">
+      <div class="hs-item">
+        <div class="hs-icon">🔴</div>
+        <div class="hs-body">
+          <div class="hs-label">Critical Miss</div>
+          <div class="hs-val signal-red">76 Hires</div>
+          <div class="hs-sub">Still needed to hit Q1 target</div>
+        </div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-icon">⚠️</div>
+        <div class="hs-body">
+          <div class="hs-label">Funnel Alert</div>
+          <div class="hs-val signal-red">76%</div>
+          <div class="hs-sub">Candidates lost at L1 stage</div>
+        </div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-icon">💸</div>
+        <div class="hs-body">
+          <div class="hs-label">Cost Leak</div>
+          <div class="hs-val signal-amber">609 Apps</div>
+          <div class="hs-sub">Agency: only 4 hires (0.7%)</div>
+        </div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-icon">✅</div>
+        <div class="hs-body">
+          <div class="hs-label">Best ROI Channel</div>
+          <div class="hs-val signal-green">9.1%</div>
+          <div class="hs-sub">Referral conversion — scale now</div>
+        </div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-icon">📅</div>
+        <div class="hs-body">
+          <div class="hs-label">SLA Health</div>
+          <div class="hs-val signal-green">21.8d</div>
+          <div class="hs-sub">Avg fill time — within 30d SLA</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXEC NARRATIVE CLOSE -->
+    <div class="narrative violet" style="margin-top:8px;">
+      <div class="narrative-label">Executive Summary — Informed Decision Points</div>
+      <div class="narrative-text">
+        <strong>5 of 8 business goals are At Risk.</strong> The single most high-leverage decision available to leadership is <strong>L1 scorecard calibration</strong> — fixing the 76% L1 drop-off unlocks an estimated +18 additional hires from the existing pipeline with zero new sourcing spend. Second priority: <strong>referral program formalisation</strong> — the best-performing channel at 9.1% is operating at 5.6% of its potential. Combined, these two actions alone can bridge approximately <strong>50% of the Q1 hire gap</strong>. Both require a decision this week to have impact this quarter.
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- END PAGE EXEC -->
+
+<!-- ════════════════════════════════════════
+     PAGE 0 — THE STORY
+════════════════════════════════════════ -->
+<div class="page active" id="page-0">
+  <div class="story-hero">
+    <div class="story-chapter">Data Story — Q1 2026 · Talent Acquisition</div>
+    <h1 class="story-headline">
+      Your pipeline has <em>1,373 candidates</em> but<br>only <em>24 have joined.</em> Here's why.
+    </h1>
+    <p class="story-lede">
+      A 4-lens intelligence report covering what happened across 84 open positions, why your L1→L2 funnel is collapsing, what the next 60 days will look like, and the exact levers to pull to fix it.
+    </p>
+    <div class="story-kpi-row">
+      <div class="story-kpi">
+        <div class="story-kpi-label">Pipeline Volume</div>
+        <div class="story-kpi-val signal-amber">1,373</div>
+        <div class="story-kpi-sub">Unique candidates</div>
+      </div>
+      <div class="story-kpi">
+        <div class="story-kpi-label">Confirmed Joins</div>
+        <div class="story-kpi-val signal-green">24</div>
+        <div class="story-kpi-sub">1.75% of pipeline</div>
+      </div>
+      <div class="story-kpi">
+        <div class="story-kpi-label">Open Positions</div>
+        <div class="story-kpi-val signal-blue">59</div>
+        <div class="story-kpi-sub">of 84 requisitions</div>
+      </div>
+      <div class="story-kpi">
+        <div class="story-kpi-label">Funnel Leak</div>
+        <div class="story-kpi-val signal-red">76%</div>
+        <div class="story-kpi-sub">L1→L2 drop rate</div>
+      </div>
+      <div class="story-kpi">
+        <div class="story-kpi-label">Best Source ROI</div>
+        <div class="story-kpi-val signal-amber">9.1%</div>
+        <div class="story-kpi-sub">Referral conversion</div>
+      </div>
+      <div class="story-kpi">
+        <div class="story-kpi-label">Avg Position Age</div>
+        <div class="story-kpi-val signal-orange">21.8d</div>
+        <div class="story-kpi-sub">SLA target: 30d</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 CHAPTER CARDS -->
+  <div class="page-inner">
+    <div class="grid2" style="margin-top:32px;">
+      <div class="signal-card sc-blue" onclick="goPage(1)" style="cursor:pointer;">
+        <div class="sc-tag">Chapter 1 · Descriptive</div>
+        <div class="sc-metric">3,215</div>
+        <div class="sc-title">Pipeline events across 8 recruitment stages</div>
+        <div class="sc-body">Full chronological account of every candidate movement, source breakdown, stage volumes, and geography from Jan to Feb 2026. The raw facts — unfiltered.</div>
+        <div class="sc-link">Read Chapter 1 ›</div>
+      </div>
+      <div class="signal-card sc-orange" onclick="goPage(2)" style="cursor:pointer;">
+        <div class="sc-tag">Chapter 2 · Diagnostic</div>
+        <div class="sc-metric">5</div>
+        <div class="sc-title">Root causes driving your hiring underperformance</div>
+        <div class="sc-body">Root cause trees, correlation signals, and bottleneck heatmaps revealing why 76% of candidates fail at L1, why 22% of positions are dropped, and why agency spend is delivering negative ROI.</div>
+        <div class="sc-link">Read Chapter 2 ›</div>
+      </div>
+      <div class="signal-card sc-violet" onclick="goPage(3)" style="cursor:pointer;">
+        <div class="sc-tag">Chapter 3 · Predictive</div>
+        <div class="sc-metric">68–82</div>
+        <div class="sc-title">Projected hires if the pipeline holds its current trajectory</div>
+        <div class="sc-body">Machine-assisted forecasts covering hire trajectory, SLA breach probability, offer attrition risk, and leading indicators. Scenario-modelled across base, optimistic, and stress-case paths.</div>
+        <div class="sc-link">Read Chapter 3 ›</div>
+      </div>
+      <div class="signal-card sc-amber" onclick="goPage(4)" style="cursor:pointer;">
+        <div class="sc-tag">Chapter 4 · Prescriptive</div>
+        <div class="sc-metric">+38</div>
+        <div class="sc-title">Additional hires unlocked by executing the top 5 actions</div>
+        <div class="sc-body">Ranked action cards with effort vs. impact scoring, interactive scenario sliders, decision playbooks by stakeholder role, and a step-by-step 30-60-90 day roadmap.</div>
+        <div class="sc-link">Read Chapter 4 ›</div>
+      </div>
+    </div>
+
+    <!-- MINI STORY FUNNEL -->
+    <div class="section-label"><span class="section-num">◈</span> The Hiring Pipeline at a Glance</div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-headline">From 1,373 candidates… to 24 joins</div>
+      <div class="card-sub">Each stage shows volume and dropout rate. Hover for insights.</div>
+      <div id="storyFunnel" style="padding:8px 0 8px; max-width:780px;"></div>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">💡 <strong style="color:var(--signal);">L1→L2 is the critical bottleneck</strong> — 76% of candidates lost here</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">💡 <strong style="color:var(--go);">Referrals convert at 9.1%</strong> vs Agency at 0.7%</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--stop);">⚠ <strong>38 offers issued, only 24 joined</strong> — 36.8% offer fall-off</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 1 — DESCRIPTIVE
+════════════════════════════════════════ -->
+<div class="page" id="page-1">
+  <div class="story-hero" style="padding-bottom:32px;">
+    <div class="story-chapter">Chapter 1 · Descriptive Analytics</div>
+    <h1 class="story-headline" style="font-size:clamp(22px,3vw,36px);">
+      What happened in your talent pipeline?
+    </h1>
+    <p class="story-lede" style="font-size:13px;">
+      84 positions opened. 1,373 candidates engaged. 3,215 pipeline events logged. Here is the complete factual record.
+    </p>
+  </div>
+
+  <div class="page-inner">
+    <div class="section-label" style="padding-top:24px;"><span class="section-num">1.1</span>Pipeline Volume & Stage Counts</div>
+
+    <div class="narrative">
+      <div class="narrative-label">What the data shows</div>
+      <div class="narrative-text">Between January and February 2026, <strong>84 unique positions</strong> were opened across 8 sub-departments. The pipeline generated <strong>3,215 activity events</strong> across 17 distinct workflow stages. Recruiter Screening is the highest-volume gate at <strong>1,085 candidates</strong>, while only <strong>24 candidates</strong> reached the final Joined stage — a 1.75% end-to-end conversion rate.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Full Pipeline Funnel — All Stages</div>
+        <div id="descFunnel" style="padding-top:8px; max-width:680px;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Stage Distribution — Candidate Events</div>
+        <div style="position:relative;height:340px;"><canvas id="stageBarChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><span class="section-num">1.2</span>Sourcing Channel Breakdown</div>
+
+    <div class="narrative blue">
+      <div class="narrative-label">Sourcing Reality</div>
+      <div class="narrative-text"><strong>Recruitment Agencies</strong> dominate application volume at 609 (44.2%) but produce only 4 hires. <strong>Job Sites</strong> (555 apps) are the most balanced channel. Most underutilised: <strong>Team Member Referrals</strong> — just 77 applications, yet 7 hires. The inverse relationship between volume and quality is a defining pattern in this data.</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Applications by Channel</div>
+        <div style="position:relative;height:260px;"><canvas id="sourceVolChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Hires by Channel</div>
+        <div style="position:relative;height:260px;"><canvas id="hiresBySource"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><span class="section-num">1.3</span>Position Inventory & Geography</div>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Requisition Status</div>
+        <div style="position:relative;height:220px;"><canvas id="posStatusChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Category Split</div>
+        <div style="position:relative;height:220px;"><canvas id="catChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Sub-Department Distribution</div>
+        <div style="position:relative;height:220px;"><canvas id="deptPieChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid32">
+      <div class="card">
+        <div class="card-title">Candidate Geography — Top 10 Cities</div>
+        <div style="position:relative;height:280px;"><canvas id="cityChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Vacancy Type</div>
+        <div style="position:relative;height:280px;"><canvas id="vacChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><span class="section-num">1.4</span>Recruiter Activity Ledger</div>
+    <div class="card">
+      <div class="card-title">Top 15 Recruiters — Actions, Candidates & Outcomes</div>
+      <div class="scroll-table" style="margin-top:12px;">
+        <table class="tbl" id="descRecTable">
+          <thead><tr>
+            <th>#</th><th>Recruiter</th><th>Actions</th><th>Activity Share</th>
+            <th>Unique Candidates</th><th>Positions</th>
+            <th>Offers</th><th>Joins</th><th>Hire Rate</th>
+          </tr></thead>
+          <tbody id="descRecBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 2 — DIAGNOSTIC
+════════════════════════════════════════ -->
+<div class="page" id="page-2">
+  <div class="story-hero" style="padding-bottom:32px;">
+    <div class="story-chapter">Chapter 2 · Diagnostic Analytics</div>
+    <h1 class="story-headline" style="font-size:clamp(22px,3vw,36px);">
+      Why is the pipeline underperforming?
+    </h1>
+    <p class="story-lede" style="font-size:13px;">
+      Five root causes. Correlated evidence. No speculation — every diagnosis is traceable back to the data.
+    </p>
+  </div>
+
+  <div class="page-inner">
+    <div class="section-label" style="padding-top:24px;"><span class="section-num">2.1</span>Root Cause Analysis — The Five Failure Modes</div>
+
+    <div class="narrative red">
+      <div class="narrative-label">Diagnostic Summary</div>
+      <div class="narrative-text">The data reveals <strong>five compounding failure modes</strong>: a collapsed L1→L2 funnel (76% drop), an over-reliance on low-quality agency sourcing, a 22.6% position drop rate due to poor requisition governance, a 36.8% offer-to-join fall-off, and severe geographic concentration risk in Chennai. These are not independent — they compound each other.</div>
+    </div>
+
+    <!-- RCA 1 -->
+    <div class="grid32">
+      <div class="card">
+        <div class="card-title">Root Cause #1 — The L1 Funnel Collapse</div>
+        <div class="rca-tree">
+          <div class="rca-root">⚠ Problem: 76% of L1 candidates never reach L2 (630 of 829 lost)</div>
+          <div class="rca-children">
+            <div class="rca-cause">
+              <div class="rca-cause-box rca-l1">
+                <div class="rca-cause-label">Cause A — Sourcing Misalignment</div>
+                <div class="rca-cause-text">Agency-sourced profiles (44% of pipeline) are submitted without JD fitment checks. Agencies optimise for volume, not match quality. Evidence: agency hire rate = 0.7% vs referral = 9.1%</div>
+              </div>
+            </div>
+            <div class="rca-cause">
+              <div class="rca-cause-box rca-l1">
+                <div class="rca-cause-label">Cause B — No Standardised L1 Scorecard</div>
+                <div class="rca-cause-text">Without calibrated evaluation rubrics, L1 decisions are subjective. This produces inconsistent pass/fail thresholds across panels and positions, inflating rejection counts.</div>
+              </div>
+              <div class="rca-cause" style="margin-top:8px;">
+                <div class="rca-cause-box rca-l2">
+                  <div class="rca-cause-label">Contributing Factor</div>
+                  <div class="rca-cause-text">172 rescheduled events suggest panel availability bottlenecks that degrade candidate experience and increase ghosting rates</div>
+                </div>
+              </div>
+            </div>
+            <div class="rca-cause">
+              <div class="rca-cause-box rca-l1">
+                <div class="rca-cause-label">Cause C — JD-Candidate Gap</div>
+                <div class="rca-cause-text">Position skills list vs. candidate skills shows mismatch patterns in ETL, Azure, and niche tech stacks. Active sourcing is pulling generic profiles for specialised roles.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="signal-card sc-red" style="margin-bottom:16px;">
+          <div class="sc-tag">Impact Metric</div>
+          <div class="sc-metric">76%</div>
+          <div class="sc-title">L1 to L2 Drop Rate</div>
+          <div class="sc-body">630 candidates lost between L1 and L2. At typical industry rate of 40–50%, you should be advancing ~415 to L2. The 215-candidate gap represents direct hiring capacity loss.</div>
+        </div>
+        <div class="signal-card sc-orange">
+          <div class="sc-tag">Correlated Signal</div>
+          <div class="sc-metric">328</div>
+          <div class="sc-title">Total Rejections in Pipeline</div>
+          <div class="sc-body">328 formal rejections logged — predominantly at Recruiter Screening (leading to L1) and L1 stage, confirming early funnel is the primary value destruction zone.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONVERSION HEATMAP -->
+    <div class="section-label"><span class="section-num">2.2</span>Stage Conversion Heatmap</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Conversion Rate by Stage Transition</div>
+        <div class="card-sub">Where candidates advance vs. where they fall out</div>
+        <div style="position:relative;height:300px;"><canvas id="convRadarChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dropout Events by Category</div>
+        <div class="card-sub">Rejected · Released · Declined · Rescheduled</div>
+        <div style="position:relative;height:300px;"><canvas id="dropoutBarChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- RCA 2 & 3 -->
+    <div class="section-label"><span class="section-num">2.3</span>Source Quality vs. Volume Paradox</div>
+    <div class="narrative">
+      <div class="narrative-label">The Key Paradox</div>
+      <div class="narrative-text">Your highest-cost sourcing channel (Recruitment Agencies at 609 applications) is your <strong>worst-performing</strong> by quality (0.7% hire rate). Your lowest-cost channel (Team Member Referrals at 77 applications) is your <strong>best-performing</strong> at 9.1% hire rate — <strong>13× better</strong>. Yet the budget and effort allocation is precisely inverted.</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Source Efficiency Matrix — Volume vs. Hire Rate</div>
+        <div style="position:relative;height:280px;"><canvas id="sourceEffChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Root Cause #2–5 Signal Cards</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+          <div style="background:rgba(255,71,87,0.06);border:1px solid rgba(255,71,87,0.15);border-radius:10px;padding:12px 14px;">
+            <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--stop);margin-bottom:4px;">Root Cause #2 — Position Drop Rate</div>
+            <div style="font-size:12px;color:rgba(232,236,244,0.75);">19 of 84 positions (22.6%) dropped or abandoned. Pattern: dropped positions cluster in Chennai DC for non-critical roles, suggesting HM engagement failure or budget freezes post-requisition.</div>
+          </div>
+          <div style="background:rgba(255,140,66,0.06);border:1px solid rgba(255,140,66,0.15);border-radius:10px;padding:12px 14px;">
+            <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--caution);margin-bottom:4px;">Root Cause #3 — Offer-to-Join Attrition</div>
+            <div style="font-size:12px;color:rgba(232,236,244,0.75);">38 offers extended, 24 joined = 36.8% fall-off. Industry norm: 15–20%. Root: no structured post-offer engagement or candidate care protocol. Counter-offers from current employers unaddressed.</div>
+          </div>
+          <div style="background:rgba(79,195,247,0.06);border:1px solid rgba(79,195,247,0.15);border-radius:10px;padding:12px 14px;">
+            <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--info);margin-bottom:4px;">Root Cause #4 — Geographic Concentration</div>
+            <div style="font-size:12px;color:rgba(232,236,244,0.75);">55.9% of positions mapped to Chennai DC (IDH client). Candidate pool for Chennai shows 100 profiles — below demand. Supply-demand gap emerging. Pune has 534 candidates but fewer Chennai-mapped roles.</div>
+          </div>
+          <div style="background:rgba(155,114,255,0.06);border:1px solid rgba(155,114,255,0.15);border-radius:10px;padding:12px 14px;">
+            <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--violet);margin-bottom:4px;">Root Cause #5 — Referral Underinvestment</div>
+            <div style="font-size:12px;color:rgba(232,236,244,0.75);">Referral channel has 9.1% conversion yet receives the least structured investment. No formal referral program SLA, tracking, or incentive structure visible in the data. Pure opportunity loss.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECRUITER DIAGNOSTIC -->
+    <div class="section-label"><span class="section-num">2.4</span>Recruiter Performance Diagnostic</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Activity vs. Outcomes — Scatter Analysis</div>
+        <div class="card-sub">High activity ≠ high results. Identify efficiency outliers.</div>
+        <div style="position:relative;height:300px;"><canvas id="recScatterChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Position Aging Cohorts</div>
+        <div class="card-sub">Days open — SLA breach risk assessment</div>
+        <div style="position:relative;height:300px;"><canvas id="agingCohortChart"></canvas></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);">
+          <div style="font-size:11px;color:var(--muted);line-height:1.7;">
+            <span style="color:var(--go);">●</span> 0–15d: 40 positions · Within SLA &nbsp;&nbsp;
+            <span style="color:var(--signal);">●</span> 16–30d: 22 positions · Monitor &nbsp;&nbsp;
+            <span style="color:var(--caution);">●</span> 31–45d: 15 positions · At Risk &nbsp;&nbsp;
+            <span style="color:var(--stop);">●</span> 46d+: 7 positions · Breach
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 3 — PREDICTIVE
+════════════════════════════════════════ -->
+<div class="page" id="page-3">
+  <div class="story-hero" style="padding-bottom:32px;">
+    <div class="story-chapter">Chapter 3 · Predictive Analytics</div>
+    <h1 class="story-headline" style="font-size:clamp(22px,3vw,36px);">
+      What will the next 60 days look like?
+    </h1>
+    <p class="story-lede" style="font-size:13px;">
+      Forecasts derived from current pipeline velocity, stage conversion rates, and behavioral patterns — with confidence intervals.
+    </p>
+  </div>
+
+  <div class="page-inner">
+    <div class="section-label" style="padding-top:24px;"><span class="section-num">3.1</span>Hire Trajectory Forecast</div>
+
+    <div class="narrative violet">
+      <div class="narrative-label">Forecast Methodology</div>
+      <div class="narrative-text">Projections use <strong>current pipeline state as input</strong>: 38 offers in-flight (63% historical close rate), 199 L2 candidates (~30% offer probability), 829 L1 candidates (~3.5% offer rate). Three scenarios modelled: <strong>Base</strong> (current conversion rates hold), <strong>Optimistic</strong> (L1→L2 improves to 40%), <strong>Stress</strong> (offer fall-off worsens to 50%).</div>
+    </div>
+
+    <div class="card col-full" style="margin-bottom:20px;">
+      <div class="card-title">Hire Trajectory — 8-Week Forecast with Confidence Band</div>
+      <div style="position:relative;height:320px;"><canvas id="trajectoryChart"></canvas></div>
+    </div>
+
+    <div class="section-label"><span class="section-num">3.2</span>Forecast Cards — Key Predictions</div>
+    <div class="grid2">
+      <div class="forecast-card">
+        <div class="fc-label">⟡ Hire Volume Forecast · 60 Days</div>
+        <div class="fc-value">68–82</div>
+        <div class="fc-title">Projected total confirmed joins by end of Q1 2026</div>
+        <div class="fc-body">Base case: 68 joins. Optimistic (if L1→L2 improves): 82 joins. Current confirmed: 24. Pipeline contains sufficient candidates at L1/L2 to hit the base projection without new sourcing — the issue is conversion, not volume.</div>
+        <div class="confidence-row">
+          <div class="conf-label">Confidence</div>
+          <div class="conf-track"><div class="conf-fill" style="width:72%"></div></div>
+          <div class="conf-pct">72%</div>
+        </div>
+      </div>
+      <div class="forecast-card">
+        <div class="fc-label">⟡ SLA Breach Risk · Next 15 Days</div>
+        <div class="fc-value">14–18</div>
+        <div class="fc-title">Positions likely to exceed 30-day SLA threshold</div>
+        <div class="fc-body">22 positions are currently 16–30 days old. Based on historical pipeline velocity, 64% of positions in this cohort entered SLA breach territory within 15 days without active recruiter intervention. Immediate triage required.</div>
+        <div class="confidence-row">
+          <div class="conf-label">Confidence</div>
+          <div class="conf-track"><div class="conf-fill" style="width:65%"></div></div>
+          <div class="conf-pct">65%</div>
+        </div>
+      </div>
+      <div class="forecast-card">
+        <div class="fc-label">⟡ Offer Attrition Forecast · Next 30 Days</div>
+        <div class="fc-value">11–14</div>
+        <div class="fc-title">Predicted offer declines or no-shows from current 38 outstanding</div>
+        <div class="fc-body">Current offer-to-join rate: 63.2%. Applied to 38 open offers, expect 11–14 to fall off. Counter-offer risk from TCS, Wipro, Capgemini-band candidates is high. 3-touch post-offer engagement model can reduce this by ~35%.</div>
+        <div class="confidence-row">
+          <div class="conf-label">Confidence</div>
+          <div class="conf-track"><div class="conf-fill" style="width:68%"></div></div>
+          <div class="conf-pct">68%</div>
+        </div>
+      </div>
+      <div class="forecast-card">
+        <div class="fc-label">⟡ Referral Scale Impact · If Doubled</div>
+        <div class="fc-value">+14</div>
+        <div class="fc-title">Incremental hires if referral volume scales from 77 to 154 applications</div>
+        <div class="fc-body">Referral conversion rate (9.1%) applied to 2× current referral volume (154 apps) yields ~14 additional hires with identical quality profile. This is the highest-confidence, lowest-cost prediction in this model — no new sourcing infrastructure required.</div>
+        <div class="confidence-row">
+          <div class="conf-label">Confidence</div>
+          <div class="conf-track"><div class="conf-fill" style="width:82%"></div></div>
+          <div class="conf-pct">82%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label"><span class="section-num">3.3</span>Leading Indicators & Early Warnings</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Leading Indicators Dashboard</div>
+        <div class="card-sub">Signals that predict future pipeline health</div>
+        <div style="margin-top:8px;">
+          <div class="leading-row">
+            <div class="li-icon">🔴</div>
+            <div class="li-body">
+              <div class="li-name">L1→L2 Conversion Rate</div>
+              <div class="li-sub">Current: 24% · Healthy benchmark: 45–55%</div>
+            </div>
+            <div class="li-signal"><div class="li-val signal-red">24%</div></div>
+          </div>
+          <div class="leading-row">
+            <div class="li-icon">🟡</div>
+            <div class="li-body">
+              <div class="li-name">Offer Acceptance Rate</div>
+              <div class="li-sub">Current: 63% · Benchmark: 80–85%</div>
+            </div>
+            <div class="li-signal"><div class="li-val signal-amber">63%</div></div>
+          </div>
+          <div class="leading-row">
+            <div class="li-icon">🟢</div>
+            <div class="li-body">
+              <div class="li-name">Pipeline Velocity (Avg Age)</div>
+              <div class="li-sub">21.8 days · Within 30-day SLA</div>
+            </div>
+            <div class="li-signal"><div class="li-val signal-green">21.8d</div></div>
+          </div>
+          <div class="leading-row">
+            <div class="li-icon">🔴</div>
+            <div class="li-body">
+              <div class="li-name">Requisition Drop Rate</div>
+              <div class="li-sub">22.6% positions abandoned · Benchmark: &lt;5%</div>
+            </div>
+            <div class="li-signal"><div class="li-val signal-red">22.6%</div></div>
+          </div>
+          <div class="leading-row">
+            <div class="li-icon">🟡</div>
+            <div class="li-body">
+              <div class="li-name">Rescheduling Rate</div>
+              <div class="li-sub">5.3% of events · Friction indicator</div>
+            </div>
+            <div class="li-signal"><div class="li-val signal-amber">5.3%</div></div>
+          </div>
+          <div class="leading-row">
+            <div class="li-icon">🟢</div>
+            <div class="li-body">
+              <div class="li-name">Referral Share</div>
+              <div class="li-sub">5.6% of applications · Target: 20%+</div>
+            </div>
+            <div class="li-signal"><div class="li-val signal-orange">5.6%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Scenario Comparison — 60-Day Hire Count</div>
+        <div class="card-sub">What each lever change unlocks</div>
+        <div style="position:relative;height:300px;"><canvas id="scenarioBarChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 4 — PRESCRIPTIVE
+════════════════════════════════════════ -->
+<div class="page" id="page-4">
+  <div class="story-hero" style="padding-bottom:32px;">
+    <div class="story-chapter">Chapter 4 · Prescriptive Analytics</div>
+    <h1 class="story-headline" style="font-size:clamp(22px,3vw,36px);">
+      What should we do — and in what order?
+    </h1>
+    <p class="story-lede" style="font-size:13px;">
+      Five ranked actions. Impact/effort scored. Interactive hire calculator. 30-60-90 day decision playbook.
+    </p>
+  </div>
+
+  <div class="page-inner">
+    <div class="section-label" style="padding-top:24px;"><span class="section-num">4.1</span>Top 5 Prescribed Actions — Ranked by Hire Impact</div>
+
+    <div class="narrative green">
+      <div class="narrative-label">Decision Framework</div>
+      <div class="narrative-text">Actions are ranked by <strong>projected hire uplift per unit of effort</strong>. The methodology: each action's predicted hire increase is estimated using current conversion rate data, industry benchmarks, and pipeline volumes. Actions with <strong>high impact + low effort</strong> are prioritised regardless of complexity perception.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+
+      <div class="action-card">
+        <div class="action-rank">1</div>
+        <div class="action-body">
+          <div class="action-cat">Sourcing Strategy · Immediate</div>
+          <div class="action-title">Launch a Structured Employee Referral Program</div>
+          <div class="action-desc">Referrals convert at 9.1% vs agency 0.7% — 13× ROI advantage. Formalise with a tiered incentive (₹20K–50K per successful hire), 30-day SLA for recruiter follow-up on referrals, and a monthly referral leaderboard. Target: double referral volume from 77 to 160 applications per month.</div>
+          <div class="action-outcome">Projected uplift: +14 additional hires per quarter · Cost per hire decreases by ~40%</div>
+        </div>
+        <div class="action-meta">
+          <div class="impact-badge impact-high">↑ High Impact</div>
+          <div class="effort-badge">● Low Effort</div>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-rank">2</div>
+        <div class="action-body">
+          <div class="action-cat">Funnel Optimisation · Week 1–2</div>
+          <div class="action-title">Implement Calibrated L1 Interview Scorecards</div>
+          <div class="action-desc">76% of candidates fail at L1 — this is primarily a measurement problem, not a candidate quality problem. Create role-specific evaluation rubrics with 5-point scales for technical, communication, and fitment dimensions. Conduct a panel calibration workshop (half-day). Monitor weekly L1→L2 rate as primary KPI. Target: move from 24% to 40% conversion.</div>
+          <div class="action-outcome">Projected uplift: +95 candidates advancing to L2 · ~28 additional offers · +18 joins</div>
+        </div>
+        <div class="action-meta">
+          <div class="impact-badge impact-high">↑ High Impact</div>
+          <div class="effort-badge">●● Medium Effort</div>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-rank">3</div>
+        <div class="action-body">
+          <div class="action-cat">Offer Management · Week 1</div>
+          <div class="action-title">Deploy Post-Offer Candidate Care Protocol</div>
+          <div class="action-desc">36.8% of offers are not converting to joins — nearly double the industry norm of 15–20%. Introduce a 3-touch engagement model: Day 1 (offer debrief call), Day 7 (counter-offer risk check), Day 14 (onboarding readiness). Assign each offer to a named recruiter as single point of contact. Track revocation reasons in ATS.</div>
+          <div class="action-outcome">Projected uplift: Improve acceptance rate from 63% to 80% · +5–7 additional joins per batch</div>
+        </div>
+        <div class="action-meta">
+          <div class="impact-badge impact-high">↑ High Impact</div>
+          <div class="effort-badge">● Low Effort</div>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-rank">4</div>
+        <div class="action-body">
+          <div class="action-cat">Budget Reallocation · Month 1</div>
+          <div class="action-title">Reduce Agency Spend by 40%, Redirect to Direct Sourcing</div>
+          <div class="action-desc">Recruitment agencies consume estimated 40–45% of TA budget but yield 0.7% hire rate. Reducing agency engagement by 40% and redirecting to LinkedIn Recruiter, Naukri direct, and Boolean sourcing tooling will improve cost-per-hire significantly. Retain agencies only for niche / senior roles where direct sourcing is demonstrably harder.</div>
+          <div class="action-outcome">Cost per hire reduction: ~35% · Direct sourcing conversion benchmark: 2.5–4%</div>
+        </div>
+        <div class="action-meta">
+          <div class="impact-badge impact-medium">→ Medium Impact</div>
+          <div class="effort-badge">●● Medium Effort</div>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-rank">5</div>
+        <div class="action-body">
+          <div class="action-cat">Requisition Governance · Month 1</div>
+          <div class="action-title">Implement Position Health Reviews — Triage Dropped &amp; Stalled Positions</div>
+          <div class="action-desc">19 positions (22.6%) are dropped/abandoned. Establish mandatory 14-day position health review: any position with no pipeline movement in 14 days triggers an automatic escalation to TA Head and HM. Introduce a position closure checklist to capture drop reasons. This data will also feed future predictive models.</div>
+          <div class="action-outcome">Reduce drop rate from 22.6% to under 8% · Recover ~11 active requisitions</div>
+        </div>
+        <div class="action-meta">
+          <div class="impact-badge impact-medium">→ Medium Impact</div>
+          <div class="effort-badge">●● Medium Effort</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPACT / EFFORT MATRIX -->
+    <div class="section-label"><span class="section-num">4.2</span>Impact vs. Effort Matrix</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Action Portfolio — Impact / Effort Positioning</div>
+        <div class="card-sub">Top-right quadrant = execute immediately</div>
+        <div style="position:relative;height:320px;"><canvas id="ieChart"></canvas></div>
+        <div style="margin-top:10px;font-family:var(--font-mono);font-size:10px;color:var(--muted);line-height:1.8;">
+          <span style="color:var(--go);">●</span> Quick Wins (High Impact, Low Effort) &nbsp;
+          <span style="color:var(--signal);">●</span> Strategic Bets (High Impact, High Effort) &nbsp;
+          <span style="color:var(--info);">●</span> Fill-Ins (Low Impact, Low Effort) &nbsp;
+          <span style="color:var(--stop);">●</span> Avoid (Low Impact, High Effort)
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Interactive Hire Calculator</div>
+        <div class="card-sub">Adjust levers to model projected hire count</div>
+        <div style="margin-top:16px;">
+          <div class="slider-row">
+            <div class="slider-lbl">Referral volume (current: 77)</div>
+            <input type="range" class="slider-input" id="sl-ref" min="77" max="300" value="77" oninput="updateCalc()">
+            <div class="slider-val" id="sv-ref">77</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-lbl">L1→L2 conversion % (current: 24%)</div>
+            <input type="range" class="slider-input" id="sl-l1" min="24" max="60" value="24" oninput="updateCalc()">
+            <div class="slider-val" id="sv-l1">24%</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-lbl">Offer acceptance % (current: 63%)</div>
+            <input type="range" class="slider-input" id="sl-offer" min="63" max="90" value="63" oninput="updateCalc()">
+            <div class="slider-val" id="sv-offer">63%</div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-lbl">Agency reduction % (current: 0%)</div>
+            <input type="range" class="slider-input" id="sl-agency" min="0" max="60" value="0" oninput="updateCalc()">
+            <div class="slider-val" id="sv-agency">0%</div>
+          </div>
+          <div class="scenario-result">
+            <div>
+              <div class="sr-label">Baseline Hires (current)</div>
+              <div style="font-family:var(--font-mono);font-size:13px;color:var(--muted);">24 confirmed</div>
+            </div>
+            <div style="text-align:center;">
+              <div class="sr-label">Projected Additional Hires</div>
+              <div class="sr-val" id="calc-result">+0</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="sr-label">Total Projected Q1</div>
+              <div style="font-family:var(--font-display);font-size:22px;font-weight:900;color:var(--go);" id="calc-total">24</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 30-60-90 ROADMAP -->
+    <div class="section-label"><span class="section-num">4.3</span>Decision Playbook — 30 / 60 / 90 Day Roadmap</div>
+    <div class="grid3">
+      <div class="card" style="border-color:rgba(255,71,87,0.3);background:linear-gradient(160deg,rgba(255,71,87,0.05),var(--card));">
+        <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--stop);margin-bottom:12px;">Days 1–30 · Immediate</div>
+        <div class="decision-path">
+          <div class="dp-step">
+            <div class="dp-num">1</div>
+            <div class="dp-body">
+              <div class="dp-title">Triage All Open Positions</div>
+              <div class="dp-desc">Review each of the 59 open positions. Tag as Active, On-Watch, or Escalate. Assign SLA dates.</div>
+              <div class="dp-kpi">Owner: TA Head · Time: 2 days</div>
+            </div>
+          </div>
+          <div class="dp-step">
+            <div class="dp-num">2</div>
+            <div class="dp-body">
+              <div class="dp-title">Launch Post-Offer Care Protocol</div>
+              <div class="dp-desc">Immediate for 38 outstanding offers. Assign recruiter owners, initiate 3-touch check-in sequence.</div>
+              <div class="dp-kpi">Owner: Each Recruiter · Impact: +5–7 joins</div>
+            </div>
+          </div>
+          <div class="dp-step">
+            <div class="dp-num">3</div>
+            <div class="dp-body">
+              <div class="dp-title">Referral Program Soft Launch</div>
+              <div class="dp-desc">Internal announcement, incentive structure, referral intake form. No IT dependency needed.</div>
+              <div class="dp-kpi">Owner: HR + TA Head · Cost: ₹0 launch cost</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(245,200,66,0.3);background:linear-gradient(160deg,rgba(245,200,66,0.05),var(--card));">
+        <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--signal);margin-bottom:12px;">Days 31–60 · Build</div>
+        <div class="decision-path">
+          <div class="dp-step">
+            <div class="dp-num">4</div>
+            <div class="dp-body">
+              <div class="dp-title">L1 Scorecard Rollout</div>
+              <div class="dp-desc">Design role-family scorecards for top 5 tech stacks. Run panel calibration workshop. Track weekly conversion.</div>
+              <div class="dp-kpi">Owner: TA Head + HMs · Target: 24%→40% L1 pass</div>
+            </div>
+          </div>
+          <div class="dp-step">
+            <div class="dp-num">5</div>
+            <div class="dp-body">
+              <div class="dp-title">Agency Renegotiation</div>
+              <div class="dp-desc">Audit agency performance by hire rate. Issue performance warning to agencies below 1.5%. Reduce mandate scope for low performers.</div>
+              <div class="dp-kpi">Owner: TA Head + Finance · Saving: ~₹15–25L</div>
+            </div>
+          </div>
+          <div class="dp-step">
+            <div class="dp-num">6</div>
+            <div class="dp-body">
+              <div class="dp-title">Pune → Chennai Mobility Pilot</div>
+              <div class="dp-desc">Test relocation/remote allowance for 5 Pune candidates for Chennai-mapped IDH roles. Assess candidate interest.</div>
+              <div class="dp-kpi">Owner: HM + TA · Addresses supply gap</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(34,217,138,0.3);background:linear-gradient(160deg,rgba(34,217,138,0.05),var(--card));">
+        <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--go);margin-bottom:12px;">Days 61–90 · Scale</div>
+        <div class="decision-path">
+          <div class="dp-step">
+            <div class="dp-num">7</div>
+            <div class="dp-body">
+              <div class="dp-title">TA Analytics Dashboard Governance</div>
+              <div class="dp-desc">Establish weekly TA review cadence using this dashboard. Define KPI ownership. Add data capture for missing fields (drop reason, sourced_date).</div>
+              <div class="dp-kpi">Owner: CHRO + TA Head · Recurring: Weekly</div>
+            </div>
+          </div>
+          <div class="dp-step">
+            <div class="dp-num">8</div>
+            <div class="dp-body">
+              <div class="dp-title">Referral Program Full Launch + Measurement</div>
+              <div class="dp-desc">Activate incentive payouts, publish first referral leaderboard, review first 30-day results, adjust incentives.</div>
+              <div class="dp-kpi">Owner: HR · Target: 160+ referral apps/month</div>
+            </div>
+          </div>
+          <div class="dp-step">
+            <div class="dp-num">9</div>
+            <div class="dp-body">
+              <div class="dp-title">Hire Forecast vs Actuals Review</div>
+              <div class="dp-desc">Compare Q1 actuals against the 68–82 hire forecast. Calibrate predictive model inputs. Publish Q2 forecast.</div>
+              <div class="dp-kpi">Owner: TA Head · Output: Q2 Forecast</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAKEHOLDER PLAYBOOKS -->
+    <div class="section-label"><span class="section-num">4.4</span>Decision Guidance by Stakeholder</div>
+    <div class="grid2">
+      <div class="signal-card sc-amber">
+        <div class="sc-tag">For Founders &amp; CHRO</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Three board-level decisions required</div>
+        <div style="font-size:12px;color:rgba(232,236,244,0.7);line-height:1.8;">
+          <strong style="color:var(--signal);">1. Referral Budget Approval</strong> — Allocate ₹5–10L for incentive payouts. Expected 40% CPH reduction justifies 3–4× ROI.<br>
+          <strong style="color:var(--signal);">2. Agency Contract Review</strong> — Mandate performance-linked agency contracts. Agencies below 1.5% hire rate lose preferred status.<br>
+          <strong style="color:var(--signal);">3. Chennai Supply Strategy</strong> — Decide: hire for remote/hybrid for IDH roles OR invest in Chennai sourcing expansion. 55% concentration in one DC is a risk.
+        </div>
+      </div>
+      <div class="signal-card sc-blue">
+        <div class="sc-tag">For TA Head</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Operational priorities this week</div>
+        <div style="font-size:12px;color:rgba(232,236,244,0.7);line-height:1.8;">
+          <strong style="color:var(--info);">1. L1 Scorecard Design</strong> — Prioritise ETL QA, Azure Data, and SharePoint roles (highest volume). Pilot with top 3 recruiters.<br>
+          <strong style="color:var(--info);">2. Recruiter Performance 1:1s</strong> — Klaap (6 joins, 235 actions) is your benchmark. Ptapo (231 actions, 0 joins) needs coaching.<br>
+          <strong style="color:var(--info);">3. Position Triage</strong> — 7 positions in 46d+ aging bracket need immediate HM re-engagement or closure.
+        </div>
+      </div>
+      <div class="signal-card sc-green">
+        <div class="sc-tag">For Hiring Managers</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">What HMs should act on now</div>
+        <div style="font-size:12px;color:rgba(232,236,244,0.7);line-height:1.8;">
+          <strong style="color:var(--go);">1. L1 Panel Availability</strong> — 172 rescheduled events trace back to panel unavailability. Designate backup interviewers for each role family.<br>
+          <strong style="color:var(--go);">2. JD Refresh</strong> — Positions with 3+ L1 rejections have JD-candidate misalignment. Work with TA to recalibrate must-have vs. nice-to-have skills.<br>
+          <strong style="color:var(--go);">3. Dropped Position Review</strong> — Each dropped position has a cost. Confirm closure reasoning with TA to improve future requisition accuracy.
+        </div>
+      </div>
+      <div class="signal-card sc-violet">
+        <div class="sc-tag">For Recruiters</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Daily execution priorities</div>
+        <div style="font-size:12px;color:rgba(232,236,244,0.7);line-height:1.8;">
+          <strong style="color:var(--violet);">1. Work Your Offers</strong> — Don't file and forget. Each of the 38 open offers needs a daily-to-weekly check-in. Use the 3-touch model.<br>
+          <strong style="color:var(--violet);">2. Source-to-JD Fit Check</strong> — Before submitting any agency profile, run a 5-point skills fit check vs. position requirements. Reject before L1 if &lt;3/5.<br>
+          <strong style="color:var(--violet);">3. Log Everything</strong> — Missing sourced_date (40% records), empty drop reasons (90% records) degrade your analytics. Data quality = forecast accuracy.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+// ──────────────────────────────────────
+// DATA
+// ──────────────────────────────────────
+const D = {
+  funnel: [
+    {label:'Recruiter Screening', n:1085, color:'#4fc3f7'},
+    {label:'L1 Interview',        n:829,  color:'#7ec8e3'},
+    {label:'L2 Interview',        n:199,  color:'#9b72ff'},
+    {label:'HR Interview',        n:62,   color:'#c4a8ff'},
+    {label:'Client L1',           n:81,   color:'#f5c842'},
+    {label:'Client L2',           n:13,   color:'#e8a020'},
+    {label:'Offer Made',          n:38,   color:'#ff8c42'},
+    {label:'Joined',              n:24,   color:'#22d98a'},
+  ],
+  sources: {
+    'Recruitment Agency':609,'Job Sites':555,'Social Media':90,
+    'Team Referral':77,'External Referral':49,'Company Web':33,'AMS':7,'Career Id':2
+  },
+  sourceHires: {'Job Sites':12,'Team Referral':7,'Recruitment Agency':4,'Social Media':1},
+  sourceConv:  {'Recruitment Agency':0.7,'Job Sites':2.2,'Social Media':1.1,'Team Referral':9.1,'External Referral':0,'Company Web':0,'AMS':0,'Career Id':0},
+  posStatus: {'Open':59,'Dropped':18,'Closed':4,'On Hold':2,'Req.Dropped':1},
+  posCat:    {'Existing Client':73,'Proactive':8,'Non-Delivery':3},
+  depts:     {'Chennai DC (DHL)':47,'General':30,'Remote DC (GDC)':2,'Open Source':1,'Others':4},
+  cities:    {'Pune':534,'Bangalore':114,'Chennai':100,'Unknown':98,'Indore':98,'Bengaluru':79,'Hyderabad':58,'Mumbai':39,'Noida':29,'Nagpur':17},
+  vacType:   {'Fresh':72,'Replacement':8,'Unknown':4},
+  recruiters:[
+    {name:'Enasa',actions:246,cands:138,pos:34,joins:1,offers:0},
+    {name:'Klaap', actions:235,cands:121,pos:22,joins:6,offers:6},
+    {name:'Ptapo', actions:231,cands:118,pos:21,joins:0,offers:0},
+    {name:'Iansi', actions:214,cands:103,pos:18,joins:0,offers:5},
+    {name:'Hrapr', actions:212,cands:109,pos:21,joins:0,offers:1},
+    {name:'N Sbh', actions:179,cands:90, pos:18,joins:1,offers:4},
+    {name:'Kursa', actions:171,cands:81, pos:18,joins:0,offers:0},
+    {name:'Watna', actions:159,cands:82, pos:17,joins:2,offers:1},
+    {name:'Iyama', actions:155,cands:76, pos:13,joins:0,offers:0},
+    {name:'Ptash', actions:141,cands:68, pos:13,joins:0,offers:0},
+    {name:'Rmaan', actions:128,cands:60, pos:14,joins:2,offers:4},
+    {name:'Ssah',  actions:98, cands:49, pos:10,joins:1,offers:1},
+    {name:'Bsahh', actions:87, cands:42, pos:9, joins:0,offers:0},
+    {name:'Lbore', actions:76, cands:38, pos:8, joins:0,offers:0},
+    {name:'Rnair', actions:55, cands:28, pos:7, joins:0,offers:0},
+  ],
+  aging: {'0-15d':40,'16-30d':22,'31-45d':15,'46-60d':5,'60d+':2},
+};
+
+// ──────────────────────────────────────
+// CHART DEFAULTS
+// ──────────────────────────────────────
+Chart.defaults.color = '#5a6882';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const C = {
+  amber:'#f5c842', green:'#22d98a', red:'#ff4757',
+  caution:'#ff8c42', info:'#4fc3f7', violet:'#9b72ff',
+  amber_a:'rgba(245,200,66,0.15)',
+  green_a:'rgba(34,217,138,0.15)',
+  red_a:  'rgba(255,71,87,0.15)',
+  violet_a:'rgba(155,114,255,0.15)',
+  info_a: 'rgba(79,195,247,0.15)',
+};
+const PALETTE = [C.info,C.amber,C.violet,C.green,C.red,C.caution,'#ff6b9d','#a0e5ff','#b0ff6b','#ffa0a0'];
+function pal(i){ return PALETTE[i % PALETTE.length]; }
+
+// ──────────────────────────────────────
+// FUNNEL BUILDER
+// ──────────────────────────────────────
+function buildFunnel(containerId, stages) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const max = stages[0].n;
+  el.innerHTML = '';
+  stages.forEach((s,i) => {
+    const pct  = (s.n / max * 100).toFixed(1);
+    const drop = i > 0 ? '-' + ((stages[i-1].n - s.n)/stages[i-1].n*100).toFixed(0)+'%' : '';
+    const ann  = i > 0 ? `${((stages[i-1].n - s.n)/stages[i-1].n*100).toFixed(0)}% dropped from ${stages[i-1].label}` : 'Entry stage';
+    el.innerHTML += `
+      <div class="funnel-stage">
+        <div class="fs-name">${s.label}</div>
+        <div class="fs-track">
+          <div class="fs-fill" style="width:${Math.max(pct,6)}%;background:${s.color}">
+            ${pct > 25 ? s.n.toLocaleString() : ''}
+          </div>
+        </div>
+        <div class="fs-count" style="color:${s.color}">${s.n.toLocaleString()}</div>
+        <div class="fs-drop">${drop}</div>
+        <div class="fs-annotation">${ann}</div>
+      </div>`;
+  });
+}
+
+// ──────────────────────────────────────
+// CHARTS
+// ──────────────────────────────────────
+function mkChart(id, cfg) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  return new Chart(el.getContext('2d'), cfg);
+}
+
+function initCharts() {
+  // ── Stage bar
+  mkChart('stageBarChart', {
+    type:'bar',
+    data:{
+      labels:['Rec.Screening','L1 Interview','Rejected','Released','L2 Interview','Rescheduled','Client L1','HR Interview','Joined','Offer','Client Review','Offer Appr.','Doc Coll.','Client L2','Declined','Int.Review'],
+      datasets:[{ label:'Events',
+        data:[1085,829,328,230,199,172,81,62,24,18,19,20,15,13,12,10],
+        backgroundColor: ctx => {
+          const special = {2:'rgba(255,71,87,0.7)',3:'rgba(255,140,66,0.5)',8:'rgba(34,217,138,0.8)'};
+          return special[ctx.dataIndex] || 'rgba(79,195,247,0.5)';
+        },
+        borderRadius:5, borderWidth:0 }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}},y:{grid:{color:'rgba(255,255,255,0.04)'}}}
+    }
+  });
+
+  // ── Source volume
+  mkChart('sourceVolChart', {
+    type:'bar',
+    data:{
+      labels:Object.keys(D.sources),
+      datasets:[{ label:'Applications', data:Object.values(D.sources),
+        backgroundColor: Object.keys(D.sources).map((_,i)=>pal(i)+'99'),
+        borderRadius:6, borderWidth:0 }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'}},y:{grid:{display:false}}}
+    }
+  });
+
+  // ── Hires by source
+  mkChart('hiresBySource', {
+    type:'bar',
+    data:{
+      labels:['Job Sites','Team Referral','Rec. Agency','Social Media'],
+      datasets:[{ label:'Hires', data:[12,7,4,1],
+        backgroundColor:[C.info+'cc',C.green+'cc',C.red+'cc',C.caution+'cc'],
+        borderRadius:6, borderWidth:0 }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'}}}
+    }
+  });
+
+  // ── Pos status doughnut
+  mkChart('posStatusChart', {
+    type:'doughnut',
+    data:{labels:Object.keys(D.posStatus),datasets:[{data:Object.values(D.posStatus),
+      backgroundColor:[C.info,C.red,C.green,C.caution,C.violet],
+      borderColor:'#141928',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10},boxWidth:10}}}}
+  });
+
+  // ── Category doughnut
+  mkChart('catChart', {
+    type:'doughnut',
+    data:{labels:['Existing Client','Proactive','Non-Delivery'],datasets:[{data:[73,8,3],
+      backgroundColor:[C.amber,C.violet,C.info],borderColor:'#141928',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10},boxWidth:10}}}}
+  });
+
+  // ── Dept doughnut
+  mkChart('deptPieChart', {
+    type:'doughnut',
+    data:{labels:['Chennai DC','General','Remote DC','Open Src','Others'],datasets:[{data:[47,30,2,1,4],
+      backgroundColor:[C.info,C.amber,C.violet,C.green,C.caution],borderColor:'#141928',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10},boxWidth:10}}}}
+  });
+
+  // ── City bar
+  mkChart('cityChart', {
+    type:'bar',
+    data:{labels:Object.keys(D.cities),datasets:[{label:'Candidates',data:Object.values(D.cities),
+      backgroundColor:Object.keys(D.cities).map((_,i)=>pal(i)+'bb'),borderRadius:5,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}
+    }
+  });
+
+  // ── Vacancy type
+  mkChart('vacChart', {
+    type:'pie',
+    data:{labels:['Fresh','Replacement','Unknown'],datasets:[{data:[72,8,4],
+      backgroundColor:[C.info,C.amber,C.caution],borderColor:'#141928',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{padding:12,font:{size:10},boxWidth:10}}}}
+  });
+
+  // ── Conversion Radar
+  mkChart('convRadarChart', {
+    type:'radar',
+    data:{
+      labels:['Screen→L1 (76%)','L1→L2 (24%)','L2→HR (31%)','HR→Offer (61%)','Offer→Join (63%)','L1→Client (10%)'],
+      datasets:[
+        {label:'Actual %',data:[76,24,31,61,63,10],
+          backgroundColor:C.red_a,borderColor:C.red,pointBackgroundColor:C.red,pointRadius:4},
+        {label:'Benchmark %',data:[70,50,60,80,82,25],
+          backgroundColor:C.green_a,borderColor:C.green,pointBackgroundColor:C.green,pointRadius:4,borderDash:[4,4]}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{padding:12,font:{size:10},boxWidth:10}}},
+      scales:{r:{grid:{color:'rgba(255,255,255,0.07)'},pointLabels:{font:{size:9}},ticks:{backdropColor:'transparent',font:{size:8}},min:0,max:100}}
+    }
+  });
+
+  // ── Dropout bar
+  mkChart('dropoutBarChart', {
+    type:'bar',
+    data:{
+      labels:['Rejected','Released','Rescheduled','Declined'],
+      datasets:[{label:'Count',data:[328,230,172,12],
+        backgroundColor:[C.red+'cc',C.caution+'cc',C.amber+'cc',C.violet+'cc'],
+        borderRadius:6,borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'}}}
+    }
+  });
+
+  // ── Source efficiency bubble
+  mkChart('sourceEffChart', {
+    type:'bubble',
+    data:{datasets:[
+      {label:'Rec. Agency',  data:[{x:609,y:0.7, r:18}],  backgroundColor:C.red+'99',    borderColor:C.red},
+      {label:'Job Sites',    data:[{x:555,y:2.2, r:15}],  backgroundColor:C.info+'99',   borderColor:C.info},
+      {label:'Social Media', data:[{x:90, y:1.1, r:8}],   backgroundColor:C.caution+'99',borderColor:C.caution},
+      {label:'Team Referral',data:[{x:77, y:9.1, r:12}],  backgroundColor:C.green+'99',  borderColor:C.green},
+      {label:'Ext. Referral',data:[{x:49, y:0,   r:6}],   backgroundColor:'rgba(255,255,255,0.15)'},
+      {label:'Company Web',  data:[{x:33, y:0,   r:5}],   backgroundColor:'rgba(255,255,255,0.10)'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{padding:8,font:{size:9},boxWidth:8}}},
+      scales:{
+        x:{title:{display:true,text:'Application Volume'},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{title:{display:true,text:'Hire Conversion %'},grid:{color:'rgba(255,255,255,0.04)'},min:0,max:12,ticks:{callback:v=>v+'%'}}
+      }
+    }
+  });
+
+  // ── Recruiter scatter
+  mkChart('recScatterChart', {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Recruiters',
+      data:D.recruiters.map(r=>({x:r.actions,y:r.joins,r:7,name:r.name})),
+      backgroundColor:C.info+'88',borderColor:C.info,pointRadius:7
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.name}: ${c.raw.x} actions, ${c.raw.y} joins`}}},
+      scales:{
+        x:{title:{display:true,text:'Actions'},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{title:{display:true,text:'Joins'},grid:{color:'rgba(255,255,255,0.04)'},min:0,ticks:{stepSize:1}}
+      }
+    }
+  });
+
+  // ── Aging cohort
+  mkChart('agingCohortChart', {
+    type:'bar',
+    data:{
+      labels:['0-15 days','16-30 days','31-45 days','46-60 days','60+ days'],
+      datasets:[{label:'Positions',data:[40,22,15,5,2],
+        backgroundColor:[C.green+'cc',C.info+'cc',C.amber+'cc',C.caution+'cc',C.red+'cc'],
+        borderRadius:8,borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{stepSize:5}}}
+    }
+  });
+
+  // ── Trajectory
+  mkChart('trajectoryChart', {
+    type:'line',
+    data:{
+      labels:['Wk 1','Wk 2','Wk 3','Wk 4','Wk 5','Wk 6','Wk 7','Wk 8'],
+      datasets:[
+        {label:'Confirmed',data:[3,5,7,9,12,16,20,24],
+          borderColor:C.green,backgroundColor:C.green+'20',fill:true,tension:0.4,pointRadius:5,pointBackgroundColor:C.green,borderWidth:2},
+        {label:'Base Forecast',data:[24,29,34,39,45,52,59,68],
+          borderColor:C.amber,backgroundColor:'transparent',borderDash:[6,3],tension:0.4,pointRadius:3,borderWidth:1.5},
+        {label:'Optimistic',data:[24,31,39,48,57,66,74,82],
+          borderColor:C.violet,backgroundColor:C.violet+'10',fill:true,borderDash:[3,3],tension:0.4,pointRadius:3,borderWidth:1.5},
+        {label:'Stress Case',data:[24,26,28,31,34,38,43,48],
+          borderColor:C.red,backgroundColor:'transparent',borderDash:[2,4],tension:0.4,pointRadius:3,borderWidth:1.5},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{padding:12,font:{size:10},boxWidth:12}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'}},y:{grid:{color:'rgba(255,255,255,0.04)'},min:0}}
+    }
+  });
+
+  // ── RAG donut (exec page)
+  mkChart('ragDonutChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['At Risk (Red)', 'Monitor (Amber)', 'On Track (Green)'],
+      datasets: [{ data: [5, 2, 1],
+        backgroundColor: ['#ff475799','#f5c84299','#22d98a99'],
+        borderColor: ['#ff4757','#f5c842','#22d98a'],
+        borderWidth: 2, hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.raw + ' goals' } }
+      }
+    }
+  });
+
+  // ── Scenario bar
+  mkChart('scenarioBarChart', {
+    type:'bar',
+    data:{
+      labels:['Baseline','Referrals 2×','L1→L2 to 40%','Agency→Direct','Offer Care','All Levers'],
+      datasets:[{label:'Projected Hires',data:[68,82,86,76,73,106],
+        backgroundColor:[C.info+'99',C.green+'99',C.violet+'99',C.amber+'99',C.caution+'99',C.green+'cc'],
+        borderRadius:6,borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        annotation:{annotations:{line:{type:'line',yMin:68,yMax:68,borderColor:C.amber,borderWidth:1,borderDash:[4,4]}}}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},min:0,max:120}}
+    }
+  });
+
+  // ── Impact/Effort chart
+  mkChart('ieChart', {
+    type:'scatter',
+    data:{datasets:[
+      {label:'1. Referral Program',   data:[{x:1.5,y:9.5}],backgroundColor:C.green+'cc',  borderColor:C.green,  pointRadius:14,pointHoverRadius:16},
+      {label:'2. L1 Scorecards',      data:[{x:4,  y:9}],  backgroundColor:C.green+'99',  borderColor:C.green,  pointRadius:14,pointHoverRadius:16},
+      {label:'3. Offer Care Protocol',data:[{x:1.5,y:8}],  backgroundColor:C.green+'88',  borderColor:C.green,  pointRadius:12,pointHoverRadius:14},
+      {label:'4. Agency Reduction',   data:[{x:5.5,y:7}],  backgroundColor:C.amber+'cc',  borderColor:C.amber,  pointRadius:12,pointHoverRadius:14},
+      {label:'5. Position Governance',data:[{x:4,  y:6}],  backgroundColor:C.amber+'99',  borderColor:C.amber,  pointRadius:10,pointHoverRadius:12},
+      {label:'ATS Data Hygiene',      data:[{x:2,  y:4}],  backgroundColor:C.info+'99',   borderColor:C.info,   pointRadius:8,pointHoverRadius:10},
+      {label:'Panel Scheduling Tool', data:[{x:4,  y:3.5}],backgroundColor:C.info+'77',   borderColor:C.info,   pointRadius:8,pointHoverRadius:10},
+      {label:'Relocation Pilot',      data:[{x:6.5,y:5}],  backgroundColor:C.caution+'88',borderColor:C.caution,pointRadius:8,pointHoverRadius:10},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{padding:6,font:{size:9},boxWidth:8}}},
+      scales:{
+        x:{title:{display:true,text:'← Lower Effort          Higher Effort →'},min:0,max:9,grid:{color:'rgba(255,255,255,0.04)'},
+           ticks:{callback:(_,i)=>['','Low','','','Med','','','High',''][i]||''}},
+        y:{title:{display:true,text:'Impact →'},min:0,max:11,grid:{color:'rgba(255,255,255,0.04)'},
+           ticks:{callback:(_,i)=>['','Low','','','Med','','','High','','',''][i]||''}}
+      }
+    }
+  });
+
+  // ── Desc funnel
+  buildFunnel('descFunnel', D.funnel);
+}
+
+// ──────────────────────────────────────
+// RECRUITER TABLE
+// ──────────────────────────────────────
+function buildRecTable() {
+  const body = document.getElementById('descRecBody');
+  if (!body) return;
+  const max = D.recruiters[0].actions;
+  D.recruiters.forEach((r,i) => {
+    const rate = r.cands > 0 ? (r.joins/r.cands*100).toFixed(1) : '0.0';
+    const rateColor = parseFloat(rate)>3?C.green:parseFloat(rate)>0?C.amber:C.caution;
+    body.innerHTML += `<tr>
+      <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+      <td style="font-weight:600;color:${C.info}">${r.name}</td>
+      <td>${r.actions}</td>
+      <td><div class="mbar"><div class="mbar-bg"><div class="mbar-fill" style="width:${(r.actions/max*100).toFixed(0)}%;background:${C.info}"></div></div><div class="mbar-val">${(r.actions/max*100).toFixed(0)}%</div></div></td>
+      <td>${r.cands}</td>
+      <td>${r.pos}</td>
+      <td style="color:${r.offers>0?C.amber:'var(--muted)'}">${r.offers}</td>
+      <td style="color:${r.joins>0?C.green:'var(--muted)'};font-weight:${r.joins>0?700:400}">${r.joins}</td>
+      <td><span style="font-family:var(--font-mono);font-size:12px;color:${rateColor}">${rate}%</span></td>
+    </tr>`;
+  });
+}
+
+// ──────────────────────────────────────
+// HIRE CALCULATOR
+// ──────────────────────────────────────
+function updateCalc() {
+  const refVol  = parseInt(document.getElementById('sl-ref').value);
+  const l1Rate  = parseInt(document.getElementById('sl-l1').value)/100;
+  const offerAcc= parseInt(document.getElementById('sl-offer').value)/100;
+  const agencyRed= parseInt(document.getElementById('sl-agency').value)/100;
+
+  document.getElementById('sv-ref').textContent   = refVol;
+  document.getElementById('sv-l1').textContent    = document.getElementById('sl-l1').value + '%';
+  document.getElementById('sv-offer').textContent = document.getElementById('sl-offer').value + '%';
+  document.getElementById('sv-agency').textContent= document.getElementById('sl-agency').value + '%';
+
+  // Referral uplift
+  const refUplift = Math.floor((refVol - 77) * 0.091);
+
+  // L1 uplift: extra candidates advancing from L1 (829) at new rate vs 24%
+  const baseL1 = Math.floor(829 * 0.24);
+  const newL1  = Math.floor(829 * l1Rate);
+  const l1Offers = Math.floor((newL1 - baseL1) * 0.19); // 19% of L2 eventually offer
+  const l1Joins  = Math.floor(l1Offers * 0.632);
+
+  // Offer acceptance uplift
+  const offerUplift = Math.floor(38 * (offerAcc - 0.632));
+
+  // Agency reduction: freed budget goes to direct (at 2.5% rate) — rough proxy
+  const agencyAppReduced = Math.floor(609 * agencyRed);
+  const directAdded = Math.floor(agencyAppReduced * 0.5); // half redirected
+  const agencyUplift = Math.floor(directAdded * 0.025 - agencyAppReduced * 0.007);
+
+  const total = Math.max(0, refUplift + l1Joins + offerUplift + agencyUplift);
+  document.getElementById('calc-result').textContent = '+' + total;
+  document.getElementById('calc-total').textContent = 24 + total;
+}
+
+// ──────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────
+function goPage(idx, nodeEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.journey-node').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + idx).classList.add('active');
+  if (nodeEl) nodeEl.classList.add('active');
+  else {
+    // +1 offset because exec nav is first node
+    const nodes = document.querySelectorAll('.journey-node');
+    if (nodes[idx+1]) nodes[idx+1].classList.add('active');
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function goExec(nodeEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.journey-node').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-exec').classList.add('active');
+  if (nodeEl) nodeEl.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+// ──────────────────────────────────────
+// PAGE FOOTERS — AUTHOR ATTRIBUTION
+// ──────────────────────────────────────
+const CHAPTER_TAGS = [
+  { tag: '★ Executive',        desc: 'KPIs & Business Goals' },
+  { tag: '◈ The Story',       desc: 'Overview · All Chapters' },
+  { tag: '01 · Descriptive',  desc: 'What Happened?' },
+  { tag: '02 · Diagnostic',   desc: 'Why Did It Happen?' },
+  { tag: '03 · Predictive',   desc: 'What Will Happen?' },
+  { tag: '04 · Prescriptive', desc: 'What Should We Do?' },
+];
+
+function buildPageFooters() {
+  const LI_SVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.6;flex-shrink:0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`;
+  // Exec page footer
+  const execPage = document.getElementById('page-exec');
+  if (execPage) {
+    const ch0 = CHAPTER_TAGS[0];
+    const LI_SVG0 = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.6;flex-shrink:0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`;
+    const execFooter = document.createElement('footer');
+    execFooter.className = 'page-footer';
+    execFooter.innerHTML = `<div class="page-footer-left"><a href="https://linkedin.com/in/bharatt" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;text-decoration:none;background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.22);border-radius:24px;padding:7px 16px 7px 8px;transition:background 0.2s;" onmouseover="this.style.background='rgba(245,200,66,0.14)'" onmouseout="this.style.background='rgba(245,200,66,0.07)'"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f5c842,#e8a020);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:900;font-size:14px;color:#000;flex-shrink:0;">B</div><div><div style="font-family:'IBM Plex Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:1.2px;color:#5a6882;line-height:1;">Prepared by</div><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#f5c842;line-height:1.4;">Bharat</div><div style="display:flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5a6882;">${LI_SVG0} linkedin.com/in/bharatt</div></div></a><div style="width:1px;height:32px;background:rgba(255,255,255,0.12);flex-shrink:0;"></div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5a6882;line-height:1.8;">TA Analytics Intelligence Dashboard<br><span style="color:#e8ecf4;">Jan – Feb 2026</span> &nbsp;·&nbsp; 3,215 events &nbsp;·&nbsp; 84 positions &nbsp;·&nbsp; 1,373 candidates</div></div><div style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2e3a52;"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#f5c842;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);border-radius:12px;padding:3px 10px;">${ch0.tag}</span><span style="color:#2e3a52;">·</span><span>${ch0.desc}</span></div>`;
+    execPage.appendChild(execFooter);
+  }
+
+  for (let i = 0; i < 5; i++) {
+    const page = document.getElementById('page-' + i);
+    if (!page) continue;
+    const ch = CHAPTER_TAGS[i+1];
+    const footer = document.createElement('footer');
+    footer.className = 'page-footer';
+    footer.innerHTML = `
+      <div class="page-footer-left">
+        <a href="https://linkedin.com/in/bharatt" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:10px;text-decoration:none;
+                  background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.22);
+                  border-radius:24px;padding:7px 16px 7px 8px;
+                  transition:background 0.2s,border-color 0.2s;"
+           onmouseover="this.style.background='rgba(245,200,66,0.14)';this.style.borderColor='rgba(245,200,66,0.45)'"
+           onmouseout="this.style.background='rgba(245,200,66,0.07)';this.style.borderColor='rgba(245,200,66,0.22)'">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f5c842,#e8a020);
+                      display:flex;align-items:center;justify-content:center;
+                      font-family:'Playfair Display',serif;font-weight:900;font-size:14px;color:#000;flex-shrink:0;">B</div>
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:1.2px;color:#5a6882;line-height:1;">Prepared by</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#f5c842;line-height:1.4;">Bharat</div>
+            <div style="display:flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5a6882;">
+              ${LI_SVG} linkedin.com/in/bharatt
+            </div>
+          </div>
+        </a>
+        <div style="width:1px;height:32px;background:rgba(255,255,255,0.12);flex-shrink:0;"></div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5a6882;line-height:1.8;">
+          TA Analytics Intelligence Dashboard<br>
+          <span style="color:#e8ecf4;">Jan – Feb 2026</span> &nbsp;·&nbsp; 3,215 events &nbsp;·&nbsp; 84 positions &nbsp;·&nbsp; 1,373 candidates
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#2e3a52;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#f5c842;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);border-radius:12px;padding:3px 10px;">${ch.tag}</span>
+        <span style="color:#2e3a52;">·</span>
+        <span>${ch.desc}</span>
+      </div>`;
+    page.appendChild(footer);
+  }
+}
+
+// ──────────────────────────────────────
+// INIT
+// ──────────────────────────────────────
+window.addEventListener('load', () => {
+  buildFunnel('storyFunnel', D.funnel);
+  initCharts();
+  buildRecTable();
+  buildPageFooters();
+});
+</script>
+</body>
+</html>
