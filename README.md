@@ -25,7 +25,6 @@ It integrates:
 “What happened → Why it happened → What will happen → What should we do”
 ________________________________________
 🔹 Live Demo
-👉 (Add your GitHub Pages link here after deployment)
 https://tbharatt.github.io/TA-Dashboard-Analytics---AI-Powered/
 ________________________________________
 🔹 Key Features
