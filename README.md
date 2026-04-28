@@ -1,5 +1,4 @@
-________________________________________
-📊 Talent Intelligence Dashboard — TA Analytics Maturity System
+Talent Intelligence Dashboard — TA Analytics Maturity System
 AI-powered Talent Acquisition Intelligence System enabling Descriptive → Diagnostic → Predictive → Prescriptive decision-making
 ________________________________________
 🔹 Problem Statement
